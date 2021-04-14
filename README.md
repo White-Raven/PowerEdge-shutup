@@ -19,7 +19,7 @@ You can run them as a cron job, or create a loop, or add some calculations pulli
 What if Linux hangs, and my server stops adjusting its fan speed?
 
 For the sake of simplicity in this repo, I won't dive into the whole mess of scripts in own setup, BUT
-> but the script actually doesn't run on the server itself but on a Pi2 of which the sole purpose is to manage IPMI enabled machines' cooling, be a server to distribute UPS data/status, and answer pings.
+- but the script actually doesn't run on the server itself but on a Pi2 of which the sole purpose is to manage IPMI enabled machines' cooling, be a server to distribute UPS data/status, and answer pings.
 
 If the Pi hangs, when the server pings it, it won't get an answer, and the server will switch itself on auto fan mode, which is BIOS/Firmware managed.
 The server can also change its curve when running some tasks/loads, in fact it goes through NetCat to tell the pie "now I need that" and the pie forks to an other set of fan curve for that server.
