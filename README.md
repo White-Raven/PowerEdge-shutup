@@ -1,6 +1,6 @@
 # PowerEdge-shutup
 
-Requires ipmitools.
+Requires ipmitools and working Idrac.
 
 To be used on G11 and G12 Poweredge servers, non-tested on others gens.
 
