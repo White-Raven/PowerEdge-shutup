@@ -31,4 +31,6 @@ So yeah, bit more convoluted but it allows the servers to not be needing to be s
 I simply haven't included all that because it's a lot more cumbersome and needs to be kinda adapted to each setup and set of needs, and I'm clearly not going to do that.
 
 
+----------------
+
 **I was told it is also working on iDrac8 (G13), but that beyond iDrac update 3.30.30.30, Dell has modified/removed the ability to control the fans via IMPI.
