@@ -2,7 +2,8 @@
 
 Requires ipmitools and working Idrac.
 
-To be used on G11 and G12 Poweredge servers, non-tested on others gens.
+To be used on G11 and G12 Poweredge servers, non-tested on others gens**.
+
 
 Does what it says, depending on your environmental constraints, it might let you make your servers whisper-quiet, which for a small home setup or homelab might be a life and sleep saver. 
 
@@ -28,3 +29,6 @@ The server can also change its curve when running some tasks/loads, in fact it g
 So yeah, bit more convoluted but it allows the servers to not be needing to be stable indefinitely to not risk to catch fire.
 
 I simply haven't included all that because it's a lot more cumbersome and needs to be kinda adapted to each setup and set of needs, and I'm clearly not going to do that.
+
+
+**I was told it is also working on iDrac8 (G13), but that beyond iDrac update 3.30.30.30, Dell has modified/removed the ability to control the fans via IMPI.
