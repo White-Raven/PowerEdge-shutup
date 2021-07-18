@@ -5,7 +5,7 @@
 - [IPMItool](https://github.com/ipmitool/ipmitool)
 - G11, G12 or G13** Dell Poweredge server
 
-
+## What about it
 Does what it says, depending on your environmental constraints, it might let you make your servers whisper-quiet, which for a small home setup or homelab might be a life and sleep saver. 
 
 It's the "raw script" that can be almost used as is in a cron job, you're obviously free to use it and modify it.
@@ -18,7 +18,7 @@ You can run them as a cron job, or create a loop, or add some calculations pulli
 
 
 
-###### What if Linux hangs, and my server stops adjusting its fan speed?
+## What if Linux hangs, and my server stops adjusting its fan speed?
 
 For the sake of simplicity in this repo, I won't dive into the whole mess of scripts in own setup, BUT
 but the script actually doesn't run on the server itself but on a Pi2 of which the sole purpose is to manage IPMI enabled machines' cooling, be a server to distribute UPS data/status, and answer pings.
