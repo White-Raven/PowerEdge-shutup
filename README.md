@@ -34,4 +34,4 @@ I simply haven't included all that because it's a lot more cumbersome and needs 
 
 ----------------
 
-**I was told it is also working on iDrac8 (G13), but that beyond iDrac update 3.30.30.30, Dell has modified/removed the ability to control the fans via IMPI.
+**_I was told it is also working on iDrac8 (G13), but that beyond iDrac update 3.30.30.30, Dell has modified/removed the ability to control the fans via IMPI._
