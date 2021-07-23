@@ -1,6 +1,6 @@
 #!/bin/bash
-#the IP addresse of iDrac
-IPMIHOST=10.10.7.71
+#the IP address of your target iDrac
+IPMIHOST=192.168.0.69
 
 #iDrac user
 IPMIUSER=root
