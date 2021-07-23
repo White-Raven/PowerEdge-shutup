@@ -34,7 +34,7 @@ FAN_SPEED5=0x14
 FST5=20
 
 #the IP addresse of iDrac
-IPMIHOST=10.10.7.71
+IPMIHOST=192.168.0.69
 
 #iDrac user
 IPMIUSER=root
