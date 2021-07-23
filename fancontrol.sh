@@ -62,6 +62,20 @@ TEMP=$((TEMPadd/2))
 # "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00" stops the server from adjusting fanspeed by itself, no matter the temp
 # "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff 0x"hex value 00-64" lets you define fan speed
 
+
+#-------------------------------------------------
+#For G11 servers:
+#I was made aware that people on iDrac6 reported only having access to ambient temperature, and not CPU temps.
+#In that case, here's how to adapt fan speed to ambiant temperature:
+#----------
+
+#IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
+#TEMP=$(echo "$IPMIPULLDATA" |grep Ambient |grep degrees |grep -Po '\d{2}' | tail -1)
+
+#echo Ambient temperature: $TEMP °C
+#-------------------------------------------------
+
+
 if [ $TEMP -ge $MAXTEMP ]; then
         echo " $TEMP is > $MAXTEMP. Switching to automatic fan control "
         ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x01
