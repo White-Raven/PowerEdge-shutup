@@ -73,6 +73,12 @@ TEMP=$((TEMPadd/2))
 #TEMP=$(echo "$IPMIPULLDATA" |grep Ambient |grep degrees |grep -Po '\d{2}' | tail -1)
 
 #echo Ambient temperature: $TEMP °C
+
+#----------
+#Keep in mind though that this method is way less indicative of CPU temps. 
+#If your load isn't consistant enough to properly profile your server, it might lead to overheating.
+#I would also personally advise you to have less "steps", such one or 2 controlled speed, 
+#and then above a certain ambiant temperature, let the server go full auto.
 #-------------------------------------------------
 
 
