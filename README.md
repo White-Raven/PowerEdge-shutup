@@ -5,7 +5,7 @@
 - [IPMItool](https://github.com/ipmitool/ipmitool)
 - G11, G12 or G13** Dell Poweredge server
 
-*******See also [me/PowerEdge-IPMItools](https://github.com/White-Raven/PowerEdge-IPMItools), I'm trying to condensate stuff.*******
+*******See also [me/PowerEdge-IPMItools](https://github.com/White-Raven/PowerEdge-IPMItools) for other applications and resources.*******
 
 ## What about it
 Does what it says, depending on your environmental constraints, it might let you make your servers whisper-quiet, which for a small home setup or homelab might be a life and sleep saver. 
