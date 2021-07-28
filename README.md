@@ -3,7 +3,7 @@
 ## Requirements
 - iDrac Entreprise (afaik it won't work with express)
 - [IPMItool](https://github.com/ipmitool/ipmitool)
-- G11, G12 or G13** Dell Poweredge server
+- G11*, G12 or G13** Dell Poweredge server
 
 *See also [me/PowerEdge-IPMItools](https://github.com/White-Raven/PowerEdge-IPMItools) for other applications and resources.*
 
@@ -35,5 +35,5 @@ I simply haven't included all that because it's a lot more cumbersome and needs 
 
 
 ----------------
-
+*_G11 seem to lack CPU temps in the data you can pull and rely on. Beware of the comments about it in the script and use the appropriate bits of code._
 **_I was told it is also working on iDrac8 (G13), but that beyond iDrac update 3.30.30.30, Dell has modified/removed the ability to control the fans via IMPI._
