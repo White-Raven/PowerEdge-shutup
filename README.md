@@ -8,10 +8,14 @@
 *See also [me/PowerEdge-IPMItools](https://github.com/White-Raven/PowerEdge-IPMItools) for other applications and resources.*
 
 ## What about it
-Does what it says, depending on your environmental constraints, it might let you make your servers whisper-quiet, which for a small home setup or homelab might be a life and sleep saver. 
+Does what it says, depending on your environmental constraints, it might let you make your servers whisper-quiet, which 
+- for an office or small business, might let you have a functionnal and capable server room without ACTUALLY having to have a proper server room with space and soundproofing,
+- and for a small home setup or homelab might be a life and sleep saver
+
 
 It's the "raw script" that can be almost used as is in a cron job, you're obviously free to use it and modify it.
-I'ld just appreciate that if you itterate on it or send it somewhere, you could else reference the source or commit it here under a new file name*.
+
+I'ld just appreciate that if you itterate on it or send it somewhere, you could else reference the source or commit it here under a new file name*, or fork it.
 (*to keep the original as-is, as an example of lazyness)
 
 As of what you can do with these great little commands... well..
