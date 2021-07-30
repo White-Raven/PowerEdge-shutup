@@ -1,6 +1,6 @@
 #!/bin/bash
 #the IP address of your target iDrac
-IPMIHOST=192.168.0.69
+IPMIHOST=192.168.0.42
 
 #iDrac user
 IPMIUSER=root
@@ -10,6 +10,9 @@ IPMIPW=calvin
 
 #YOUR IPMI ENCRYPTION KEY
 IPMIEK=0000000000000000000000000000000000000000
+
+#Side note: you shouldn't ever store credentials in a script. Period. Here it's an example. 
+#I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
 
 ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature
 
