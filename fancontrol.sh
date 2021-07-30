@@ -46,6 +46,9 @@ IPMIPW=calvin
 #You can modify it, for example in idrac7's webinterface under iDRAC Settings>Network , in the IPMI Settings section.
 IPMIEK=0000000000000000000000000000000000000000
 
+#Side note: you shouldn't ever store credentials in a script. Period. Here it's an example. 
+#I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
+
 #Pulling temperature data
 #/!\ IMPORTANT - the "0Fh" and "0Eh" values are the proper ones for MY R720, maybe not for your server. To check your values, check the "temppull.sh" file.
 IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
