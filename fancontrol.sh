@@ -33,8 +33,8 @@ TEMP_STEP5=75
 FAN_SPEED5=0x14
 FST5=20
 
-#the IP addresse of iDrac
-IPMIHOST=192.168.0.69
+#the IP address of iDrac
+IPMIHOST=192.168.0.42
 
 #iDrac user
 IPMIUSER=root
@@ -42,7 +42,8 @@ IPMIUSER=root
 #iDrac password (calvin is the default password)
 IPMIPW=calvin
 
-#YOUR IPMI ENCRYPTION KEY
+#YOUR IPMI ENCRYPTION KEY - a big string of zeros is the default, and by default isn't mandatory to be specified.
+#You can modify it, for example in idrac7's webinterface under iDRAC Settings>Network , in the IPMI Settings section.
 IPMIEK=0000000000000000000000000000000000000000
 
 #Pulling temperature data
