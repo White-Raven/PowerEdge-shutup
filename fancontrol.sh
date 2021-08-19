@@ -93,7 +93,7 @@ elif [ $AMBTEMP -ge $AMBTEMP_STEP4 ]; then
         TEMPMOD=$AMBTEMP_STEP4_MOD
 fi
 
-EXHTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
+EXHTEMP=$(echo "$DATADUMP" |grep 01h |grep degrees |grep -Po '\d{2}' | tail -1)
 if [ $EXHTEMP -ge $EXHTEMP_MAX ]; then
         echo "Exhaust temp is critical!! : $EXHTEMP °C!"
         TEMPMOD=$MAX_MOD
