@@ -112,9 +112,10 @@ echo Ambient Temp: $AMBTEMP °C
 
 #-------------------------------------------------
 #For G11 servers:
-#I was made aware that people on iDrac6 reported only having access to ambient temperature, and not CPU temps.
-#In that case, here's how to adapt fan speed to ambiant temperature: (see commented block just under)
-#Yes that also means ditching the whole "$AMBTEMP" logic and var part.
+#I was made aware that people on iDrac6 reported only having access to ambient temperature, and not CPU temps neither exhaust temps.
+#In that case,  you needto adapt fan speed to ambiant temperature, and as such, ditch a part of the script.
+#Yes that also means ditching the whole "$AMBTEMP" and "EXHTEMP" logic and var parts, line 40 to 56, line 76 to 105 can be commented out.
+#Line 121 to 124 have to be uncommented, and the script should work with just ambient temperature.
 #----------<
 
 #IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
