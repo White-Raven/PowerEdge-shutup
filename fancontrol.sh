@@ -33,6 +33,28 @@ TEMP_STEP5=75
 FAN_SPEED5=0x14
 FST5=20
 
+#These values are used as steps for the intake temps.
+#If Ambient temp is above $AMB_STEP#, it inflates the CPUs' temp average by AMBTEMP_MAX_MOD when checked against TEMP_STEP#s.
+#If Ambient temp is above $AMB_MAX, a temp modifier of 69 should be well enough to make the script select auto-fan mode.
+
+AMBTEMP_MAX=30
+MAX_MOD=69
+
+AMBTEMP_STEP1=20
+AMBTEMP_STEP1_MOD=0
+
+AMBTEMP_STEP2=23
+AMBTEMP_STEP2_MOD=10
+
+AMBTEMP_STEP3=26
+AMBTEMP_STEP3_MOD=15
+
+AMBTEMP_STEP4=26
+AMBTEMP_STEP4_MOD=20
+
+#If your exhaust temp is reaching 65°C, you've been cooking your server. It needs the woosh.
+EXHTEMP_MAX=65
+
 #the IP address of iDrac
 IPMIHOST=192.168.0.42
 
@@ -52,15 +74,36 @@ IPMIEK=0000000000000000000000000000000000000000
 #Pulling temperature data
 #/!\ IMPORTANT - the "0Fh" and "0Eh" values are the proper ones for MY R720, maybe not for your server. To check your values, check the "temppull.sh" file.
 IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
-CPUTEMP0=$(echo "$IPMIPULLDATA" |grep 0Fh |grep degrees |grep -Po '\d{2}' | tail -1)
-CPUTEMP1=$(echo "$IPMIPULLDATA" |grep 0Eh |grep degrees |grep -Po '\d{2}' | tail -1)
+DATADUMP=$(echo "$IPMIPULLDATA")
+CPUTEMP0=$(echo "$DATADUMP" |grep 0Fh |grep degrees |grep -Po '\d{2}' | tail -1)
+CPUTEMP1=$(echo "$DATADUMP" |grep 0Eh |grep degrees |grep -Po '\d{2}' | tail -1)
 TEMPadd=$((CPUTEMP0+CPUTEMP1))
-TEMP=$((TEMPadd/2))
+CPUn=$((TEMPadd/2))
+AMBTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
+if [ $AMBTEMP -ge $AMBTEMP_MAX ]; then
+        echo "Intake temp is very high!! : $AMBTEMP °C!"
+        TEMPMOD=$MAX_MOD
+elif [ $AMBTEMP -ge $AMBTEMP_STEP1 ]; then
+        TEMPMOD=$AMBTEMP_STEP1_MOD
+elif [ $AMBTEMP -ge $AMBTEMP_STEP2 ]; then
+        TEMPMOD=$AMBTEMP_STEP2_MOD
+elif [ $AMBTEMP -ge $AMBTEMP_STEP3 ]; then
+        TEMPMOD=$AMBTEMP_STEP3_MOD
+elif [ $AMBTEMP -ge $AMBTEMP_STEP4 ]; then
+        TEMPMOD=$AMBTEMP_STEP4_MOD
+fi
 
-
+EXHTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
+if [ $EXHTEMP -ge $EXHTEMP_MAX ]; then
+        echo "Exhaust temp is critical!! : $EXHTEMP °C!"
+        TEMPMOD=$MAX_MOD
+        fi
+TEMP=$((CPUn+TEMPMOD))
 #echo CPU0 : $CPUTEMP0 °C
 #echo CPU1 : $CPUTEMP1 °C
-#echo CPUn average: $TEMP °C
+echo CPUn average: $CPUn °C
+echo Ambient Temp: $AMBTEMP °C
+
 
 # "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x01" gives back to the server the right to automate fan speed
 # "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00" stops the server from adjusting fanspeed by itself, no matter the temp
@@ -70,17 +113,18 @@ TEMP=$((TEMPadd/2))
 #-------------------------------------------------
 #For G11 servers:
 #I was made aware that people on iDrac6 reported only having access to ambient temperature, and not CPU temps.
-#In that case, here's how to adapt fan speed to ambiant temperature:
-#----------
+#In that case, here's how to adapt fan speed to ambiant temperature: (see commented block just under)
+#Yes that also means ditching the whole "$AMBTEMP" logic and var part.
+#----------<
 
 #IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
 #TEMP=$(echo "$IPMIPULLDATA" |grep Ambient |grep degrees |grep -Po '\d{2}' | tail -1)
 
 #echo Ambient temperature: $TEMP °C
 
-#----------
+#----------<
 #Keep in mind though that this method is way less indicative of CPU temps. 
-#If your load isn't consistant enough to properly profile your server, it might lead to overheating.
+#If your load isn't consistent enough to properly profile your server, it might lead to overheating.
 #I would also personally advise you to have less "steps", such one or 2 controlled speed, 
 #and then above a certain ambiant temperature, let the server go full auto.
 #-------------------------------------------------
