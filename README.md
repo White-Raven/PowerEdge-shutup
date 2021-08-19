@@ -1,5 +1,7 @@
 # PowerEdge-shutup
 
+R2 update: now takes in account intake and exhaust temperatures!
+
 ## Requirements
 - iDrac Entreprise (afaik it won't work with express)
 - [IPMItool](https://github.com/ipmitool/ipmitool)
