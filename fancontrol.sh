@@ -72,13 +72,17 @@ IPMIEK=0000000000000000000000000000000000000000
 #I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
 
 #Pulling temperature data
-#/!\ IMPORTANT - the "0Fh" and "0Eh" values are the proper ones for MY R720, maybe not for your server. To check your values, check the "temppull.sh" file.
+#/!\ IMPORTANT - the "0Fh"(CPU0),"0Eh"(CPU1), "04h"(inlet) and "01h"(exhaust) values are the proper ones for MY R720, maybe not for your server. 
+#To check your values, use the "temppull.sh" script.
+#You can obviously use an other source than iDrac for your temperature readings, like lm-sensors for example. There it's an iDrac-centric example script.
 IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
 DATADUMP=$(echo "$IPMIPULLDATA")
 CPUTEMP0=$(echo "$DATADUMP" |grep 0Fh |grep degrees |grep -Po '\d{2}' | tail -1)
 CPUTEMP1=$(echo "$DATADUMP" |grep 0Eh |grep degrees |grep -Po '\d{2}' | tail -1)
+
 TEMPadd=$((CPUTEMP0+CPUTEMP1))
 CPUn=$((TEMPadd/2))
+
 AMBTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
 if [ $AMBTEMP -ge $AMBTEMP_MAX ]; then
         echo "Intake temp is very high!! : $AMBTEMP °C!"
@@ -113,9 +117,9 @@ echo Ambient Temp: $AMBTEMP °C
 #-------------------------------------------------
 #For G11 servers:
 #I was made aware that people on iDrac6 reported only having access to ambient temperature, and not CPU temps neither exhaust temps.
-#In that case,  you needto adapt fan speed to ambiant temperature, and as such, ditch a part of the script.
-#Yes that also means ditching the whole "$AMBTEMP" and "EXHTEMP" logic and var parts, line 40 to 56, line 76 to 105 can be commented out.
-#Line 121 to 124 have to be uncommented, and the script should work with just ambient temperature.
+#In that case,  you need to adapt fan speed to ambiant temperature, and as such, ditch a part of the script, or rely on other sources for the temperatures, like lm-sensors.
+#If going only from ambient temp, that also means ditching the whole "$AMBTEMP" and "EXHTEMP" logic and var parts, line 40 to 56, line 78 to 109 can be commented out.
+#Line 125 to 128 have to be uncommented, and the script should work with just ambient temperature.
 #----------<
 
 #IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
