@@ -34,11 +34,8 @@ FAN_SPEED5=0x14
 FST5=20
 
 #These values are used as steps for the intake temps.
-#If Ambient temp is above $AMB_STEP#, it inflates the CPUs' temp average by AMBTEMP_MAX_MOD when checked against TEMP_STEP#s.
-#If Ambient temp is above $AMB_MAX, a temp modifier of 69 should be well enough to make the script select auto-fan mode.
-
-AMBTEMP_MAX=30
-MAX_MOD=69
+#If Ambient temp is within range of $AMBTEMP_STEP#, it inflates the CPUs' temp average by AMBTEMP_STEP#_MOD when checked against TEMP_STEP#s.
+#If Ambient temp is above $AMBTEMP_MAX, which is step 4, a temp modifier of 69 should be well enough to make the script select auto-fan mode.
 
 AMBTEMP_STEP1=20
 AMBTEMP_STEP1_MOD=0
@@ -51,6 +48,9 @@ AMBTEMP_STEP3_MOD=15
 
 AMBTEMP_STEP4=26
 AMBTEMP_STEP4_MOD=20
+
+AMBTEMP_MAX=$AMBTEMP_STEP4
+MAX_MOD=69
 
 #If your exhaust temp is reaching 65°C, you've been cooking your server. It needs the woosh.
 EXHTEMP_MAX=65
