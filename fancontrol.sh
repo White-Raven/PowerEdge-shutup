@@ -1,8 +1,4 @@
 #!/bin/bash
-#MAXTEMP is the max combined CPU temp at which you still are using this "manual control" script, instead of letting the machine fend for itself with its automated parameters.
-#It's basically the temp at which you're not comfortable ordering your server to stay quiet anymore and let it fight for its life.
-MAXTEMP=75
-
 #There you basically define your fan curve. For each fan step temperature (in °C) you define which fan speed it uses when it's equal or under this temp.
 #For example: until it reaches step0 at 30°C, it runs at 2% fan speed, if it's above 30°C and under 35°C, it will run at 6% fan speed, ect
 #Fan speed values are to be set as "0x" + "hexa decimal value", 00 to 64, corresponding to 00% to 100% fan speed.
@@ -33,12 +29,13 @@ TEMP_STEP5=75
 FAN_SPEED5=0x14
 FST5=20
 
-#These values are used as steps for the intake temps.
-#If Ambient temp is above $AMB_STEP#, it inflates the CPUs' temp average by AMBTEMP_MAX_MOD when checked against TEMP_STEP#s.
-#If Ambient temp is above $AMB_MAX, a temp modifier of 69 should be well enough to make the script select auto-fan mode.
+#MAXTEMP is the max combined CPU temp at which you still are using this "manual control" script, instead of letting the machine fend for itself with its automated parameters.
+#It's basically the temp at which you're not comfortable ordering your server to stay quiet anymore and let it fight for its life.
+MAXTEMP=$TEMP_STEP5
 
-AMBTEMP_MAX=30
-MAX_MOD=69
+#These values are used as steps for the intake temps.
+#If Ambient temp is within range of $AMBTEMP_STEP#, it inflates the CPUs' temp average by AMBTEMP_STEP#_MOD when checked against TEMP_STEP#s.
+#If Ambient temp is above $AMBTEMP_MAX, which is step 4, a temp modifier of 69 should be well enough to make the script select auto-fan mode.
 
 AMBTEMP_STEP1=20
 AMBTEMP_STEP1_MOD=0
@@ -51,6 +48,9 @@ AMBTEMP_STEP3_MOD=15
 
 AMBTEMP_STEP4=26
 AMBTEMP_STEP4_MOD=20
+
+AMBTEMP_MAX=$AMBTEMP_STEP4
+MAX_MOD=69
 
 #If your exhaust temp is reaching 65°C, you've been cooking your server. It needs the woosh.
 EXHTEMP_MAX=65
@@ -87,13 +87,13 @@ AMBTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
 if [ $AMBTEMP -ge $AMBTEMP_MAX ]; then
         echo "Intake temp is very high!! : $AMBTEMP °C!"
         TEMPMOD=$MAX_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP1 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP1 ]; then
         TEMPMOD=$AMBTEMP_STEP1_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP2 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP2 ]; then
         TEMPMOD=$AMBTEMP_STEP2_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP3 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP3 ]; then
         TEMPMOD=$AMBTEMP_STEP3_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP4 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP4 ]; then
         TEMPMOD=$AMBTEMP_STEP4_MOD
 fi
 
