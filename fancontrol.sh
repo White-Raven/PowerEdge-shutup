@@ -87,13 +87,13 @@ AMBTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
 if [ $AMBTEMP -ge $AMBTEMP_MAX ]; then
         echo "Intake temp is very high!! : $AMBTEMP °C!"
         TEMPMOD=$MAX_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP1 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP1 ]; then
         TEMPMOD=$AMBTEMP_STEP1_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP2 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP2 ]; then
         TEMPMOD=$AMBTEMP_STEP2_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP3 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP3 ]; then
         TEMPMOD=$AMBTEMP_STEP3_MOD
-elif [ $AMBTEMP -ge $AMBTEMP_STEP4 ]; then
+elif [ $AMBTEMP -le $AMBTEMP_STEP4 ]; then
         TEMPMOD=$AMBTEMP_STEP4_MOD
 fi
 
