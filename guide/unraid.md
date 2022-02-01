@@ -148,7 +148,7 @@ EXHTEMP=$(echo "$DATADUMP" |grep 01h |grep degrees |grep -Po '\d{2}' | tail -1)
 if [ $EXHTEMP -ge $EXHTEMP_MAX ]; then
         echo "Exhaust temp is critical!! : $EXHTEMP °C!"
         TEMPMOD=$MAX_MOD
-        fi
+fi
 TEMP=$((CPUn+TEMPMOD))
 #echo CPU0 : $CPUTEMP0 °C
 #echo CPU1 : $CPUTEMP1 °C
@@ -180,35 +180,31 @@ echo Ambient Temp: $AMBTEMP °C
 #I would also personally advise you to have less "steps", such one or 2 controlled speed, 
 #and then above a certain ambiant temperature, let the server go full auto.
 #-------------------------------------------------
-
-
+ipmifanctl=(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30)
 if [ $TEMP -ge $MAXTEMP ]; then
         echo " $TEMP is > $MAXTEMP. Switching to automatic fan control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x01
-elif [ $TEMP -le $TEMP_STEP0 ]; then
-        echo " $TEMP is < $TEMP_STEP0. Switching to manual $FST0 % control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff $FAN_SPEED0
-elif [ $TEMP -le $TEMP_STEP1 ]; then
-        echo " $TEMP is < $TEMP_STEP1. Switching to manual $FST1 % control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff $FAN_SPEED1
-elif [ $TEMP -le $TEMP_STEP2 ]; then
-        echo " $TEMP is < $TEMP_STEP2. Switching to manual $FST2 % control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff $FAN_SPEED2
-elif [ $TEMP -le $TEMP_STEP3 ]; then
-        echo " $TEMP is < $TEMP_STEP3. Switching to manual $FST3 % control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff $FAN_SPEED3
-elif [ $TEMP -le $TEMP_STEP4 ]; then
-        echo " $TEMP is < $TEMP_STEP4. Switching to manual $FST4 % control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff $FAN_SPEED4
-elif [ $TEMP -le $TEMP_STEP5 ]; then
-        echo " $TEMP is < $TEMP_STEP5. Switching to manual $FST5 % control "
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00
-        ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff $FAN_SPEED5
+        "${ipmifanctl[@]}" 0x01 0x01
+else
+        "${ipmifanctl[@]}" 0x01 0x00
+        if [ $TEMP -le $TEMP_STEP0 ]; then
+                echo " $TEMP is < $TEMP_STEP0. Switching to manual $FST0 % control "
+                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED0
+        elif [ $TEMP -le $TEMP_STEP1 ]; then
+                echo " $TEMP is < $TEMP_STEP1. Switching to manual $FST1 % control "
+                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED1
+        elif [ $TEMP -le $TEMP_STEP2 ]; then
+                echo " $TEMP is < $TEMP_STEP2. Switching to manual $FST2 % control "
+                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED2
+        elif [ $TEMP -le $TEMP_STEP3 ]; then
+                echo " $TEMP is < $TEMP_STEP3. Switching to manual $FST3 % control "
+                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED3
+        elif [ $TEMP -le $TEMP_STEP4 ]; then
+                echo " $TEMP is < $TEMP_STEP4. Switching to manual $FST4 % control "
+                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED4
+        elif [ $TEMP -le $TEMP_STEP5 ]; then
+                echo " $TEMP is < $TEMP_STEP5. Switching to manual $FST5 % control "
+                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED5
+        fi
 fi
 ```
 
