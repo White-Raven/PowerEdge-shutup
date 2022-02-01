@@ -1,6 +1,9 @@
 # PowerEdge-shutup
-
-R2 update: now takes in account intake and exhaust temperatures!
+- 2022 02 01 | >minor update: beginner friendly guide for beginner friendly Unraid and minor edits.
+- 2021 11 10 | >/!\ r2f : fixing a small, but quite critical fluke.
+- 2021 08 19 | >R2 update: now takes in account intake and exhaust temperatures!
+- 2021 04-08 | > various shit edits
+- 2021 04 14 | >R1 initial dump & comments
 
 ## Requirements
 - iDrac Entreprise (afaik it won't work with express)
