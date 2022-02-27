@@ -36,7 +36,11 @@ Adding in a new script then is as simple as clicking the "Add New Script" button
 
 You should see your new script in the list. Click on the inline Cog left to its name, and in the pop-up, "Edit Script".
 
-You're now presented to a text area in which you can paste in and edit your script, which for this guide would be the [fancontrol.sh](https://github.com/White-Raven/PowerEdge-shutup/blob/main/fancontrol.sh) script I provide. 
+You're now presented to a text area in which you can paste in and edit your script, which for this guide would be the [fancontrol.sh](https://github.com/White-Raven/PowerEdge-shutup/blob/main/fancontrol.sh) script I provide.
+
+Remmember, you need to punch in your own informations, from the IP of your dedicated iDrac nic, to the login and password, eventually the IPMI ids corresponding to your hardware.
+
+You can also obviously adjust the fan curves, for both CPU driven control or Ambient driven control. Note the Ambient/Inlet temp is also used in CPU temp driven mode, as a modifier.
 
 <details>
 <summary>
@@ -46,49 +50,6 @@ You're now presented to a text area in which you can paste in and edit your scri
 
 ```bash
 #!/bin/bash
-TEMP_STEP0=30
-FAN_SPEED0=0x02
-FST0=2
-
-TEMP_STEP1=35
-FAN_SPEED1=0x06
-FST1=6
-
-TEMP_STEP2=40
-FAN_SPEED2=0x08
-FST2=8
-
-TEMP_STEP3=50
-FAN_SPEED3=0x0a
-FST3=10
-
-TEMP_STEP4=60
-FAN_SPEED4=0x0c
-FST4=12
-
-TEMP_STEP5=75
-FAN_SPEED5=0x14
-FST5=20
-
-MAXTEMP=$TEMP_STEP5
-
-AMBTEMP_STEP1=20
-AMBTEMP_STEP1_MOD=0
-
-AMBTEMP_STEP2=23
-AMBTEMP_STEP2_MOD=10
-
-AMBTEMP_STEP3=26
-AMBTEMP_STEP3_MOD=15
-
-AMBTEMP_STEP4=26
-AMBTEMP_STEP4_MOD=20
-
-AMBTEMP_MAX=$AMBTEMP_STEP4
-MAX_MOD=69
-
-EXHTEMP_MAX=65
-
 #the IP address of iDrac
 IPMIHOST=192.168.0.42
 
@@ -98,63 +59,230 @@ IPMIUSER=root
 #iDrac password (calvin is the default password)
 IPMIPW=calvin
 
-#YOUR IPMI ENCRYPTION KEY 
+#YOUR IPMI ENCRYPTION KEY
 IPMIEK=0000000000000000000000000000000000000000
 
+#IPMI IDs
+#To check your values, use the "temppull.sh" script.
+CPUID0=0Fh
+CPUID1=0Eh
+CPUID2="0#h"
+CPUID3="0#h"
+AMBIENT_ID=04h
+EXHAUST_ID=01h
 
+#Logtype:
+#0 = None
+#1 = Fan speed output
+#2 = Simple text + fanspeed output
+#3 = Table + fanspeed output
+Logtype=3
+
+#CPU fan governor type - keep in mind, it's CPUs, not cores. For dual and quad CPU configs
+#0 = uses average CPU temperature accross CPUs
+#1 = uses highest CPU temperature
+TEMPgov=0
+
+#TEMP_STEPX in °C
+#FSTX in 0-100%
+        
+TEMP_STEP0=30
+FST0=2
+TEMP_STEP1=35
+FST1=6
+TEMP_STEP2=40
+FST2=8
+TEMP_STEP3=50
+FST3=10
+TEMP_STEP4=60
+FST4=12
+TEMP_STEP5=75
+FST5=20
+TEMP_STEP_COUNT=6
+MAXTEMP=$TEMP_STEP5
+
+#AMBTEMP_STEPX in °C
+#AMBTEMP_STEPX_MOD in added °C offset for CPU profile
+#AMBTEMP_noCPU_FS_STEPX in 0-100% for Ambient temp fan profile
+        
+AMBTEMP_STEP0=20
+AMBTEMP_STEP0_MOD=0
+AMBTEMP_noCPU_FS_STEP0=8
+AMBTEMP_STEP1=23
+AMBTEMP_STEP1_MOD=10
+AMBTEMP_noCPU_FS_STEP1=15
+AMBTEMP_STEP2=26
+AMBTEMP_STEP2_MOD=15
+AMBTEMP_noCPU_FS_STEP2=20
+AMBTEMP_STEP3=26
+AMBTEMP_STEP3_MOD=20
+AMBTEMP_noCPU_FS_STEP3=30
+
+AMBTEMP_MAX=$AMBTEMP_STEP3
+MAX_MOD=69
+
+AMB_STEP_COUNT=4
+EXHTEMP_MAX=65
+        
 IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
 DATADUMP=$(echo "$IPMIPULLDATA")
-CPUTEMP0=$(echo "$DATADUMP" |grep 0Fh |grep degrees |grep -Po '\d{2}' | tail -1)
-CPUTEMP1=$(echo "$DATADUMP" |grep 0Eh |grep degrees |grep -Po '\d{2}' | tail -1)
-TEMPadd=$((CPUTEMP0+CPUTEMP1))
-CPUn=$((TEMPadd/2))
-AMBTEMP=$(echo "$DATADUMP" |grep 04h |grep degrees |grep -Po '\d{2}' | tail -1)
-if [ $AMBTEMP -ge $AMBTEMP_MAX ]; then
-        echo "Intake temp is very high!! : $AMBTEMP °C!"
-        TEMPMOD=$MAX_MOD
-elif [ $AMBTEMP -le $AMBTEMP_STEP1 ]; then
-        TEMPMOD=$AMBTEMP_STEP1_MOD
-elif [ $AMBTEMP -le $AMBTEMP_STEP2 ]; then
-        TEMPMOD=$AMBTEMP_STEP2_MOD
-elif [ $AMBTEMP -le $AMBTEMP_STEP3 ]; then
-        TEMPMOD=$AMBTEMP_STEP3_MOD
-elif [ $AMBTEMP -le $AMBTEMP_STEP4 ]; then
-        TEMPMOD=$AMBTEMP_STEP4_MOD
+if [ -z "$DATADUMP" ]; then
+        echo "No data was pulled from IPMI".
+   exit 1
 fi
-EXHTEMP=$(echo "$DATADUMP" |grep 01h |grep degrees |grep -Po '\d{2}' | tail -1)
-if [ $EXHTEMP -ge $EXHTEMP_MAX ]; then
-        echo "Exhaust temp is critical!! : $EXHTEMP °C!"
-        TEMPMOD=$MAX_MOD
-fi
-TEMP=$((CPUn+TEMPMOD))
-#echo CPU0 : $CPUTEMP0 °C
-#echo CPU1 : $CPUTEMP1 °C
-echo CPUn average: $CPUn °C
-echo Ambient Temp: $AMBTEMP °C
-ipmifanctl=(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30)
-if [ $TEMP -ge $MAXTEMP ]; then
-        echo " $TEMP is > $MAXTEMP. Switching to automatic fan control "
-        "${ipmifanctl[@]}" 0x01 0x01
+CPUTEMP0=$(echo "$DATADUMP" |grep "$CPUID0" |grep degrees |grep -Po '\d{2}' | tail -1)
+CPUTEMP1=$(echo "$DATADUMP" |grep "$CPUID1" |grep degrees |grep -Po '\d{2}' | tail -1)
+CPUTEMP2=$(echo "$DATADUMP" |grep "$CPUID2" |grep degrees |grep -Po '\d{2}' | tail -1)
+CPUTEMP3=$(echo "$DATADUMP" |grep "$CPUID3" |grep degrees |grep -Po '\d{2}' | tail -1)
+if [ -z "$CPUTEMP0" ]; then
+        CPUcount=0
+elif [ -z "$CPUTEMP1" ]; then
+        CPUcount=1
+        CPUn=$CPUTEMP0
+elif [ -z "$CPUTEMP2" ]; then
+        CPUcount=2
+        if [ $TEMPgov -eq 0 ]; then
+                TEMPadd=$((CPUTEMP0+CPUTEMP1))
+                CPUn=$((TEMPadd/CPUcount))
+        fi
 else
-        "${ipmifanctl[@]}" 0x01 0x00
-        if [ $TEMP -le $TEMP_STEP0 ]; then
-                echo " $TEMP is < $TEMP_STEP0. Switching to manual $FST0 % control "
-                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED0
-        elif [ $TEMP -le $TEMP_STEP1 ]; then
-                echo " $TEMP is < $TEMP_STEP1. Switching to manual $FST1 % control "
-                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED1
-        elif [ $TEMP -le $TEMP_STEP2 ]; then
-                echo " $TEMP is < $TEMP_STEP2. Switching to manual $FST2 % control "
-                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED2
-        elif [ $TEMP -le $TEMP_STEP3 ]; then
-                echo " $TEMP is < $TEMP_STEP3. Switching to manual $FST3 % control "
-                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED3
-        elif [ $TEMP -le $TEMP_STEP4 ]; then
-                echo " $TEMP is < $TEMP_STEP4. Switching to manual $FST4 % control "
-                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED4
-        elif [ $TEMP -le $TEMP_STEP5 ]; then
-                echo " $TEMP is < $TEMP_STEP5. Switching to manual $FST5 % control "
-                "${ipmifanctl[@]}" 0x02 0xff $FAN_SPEED5
+        CPUcount=4
+        if [ $TEMPgov -eq 0 ]; then
+                TEMPadd=$((CPUTEMP0+CPUTEMP1+CPUTEMP2+CPUTEMP3))
+                CPUn=$((TEMPadd/CPUcount))
+        fi
+fi
+if [ $TEMPgov -eq 1 ] && [ "$CPUcount" -gt 1 ]; then
+        for ((i=0; i<CPUcount; i++)) 
+            do if [[ $i -le $CPUcount ]]; then
+                CPUtemploop="CPUTEMP$i"
+                if [ "$i" -eq 0 ]; then
+                      CPUn=${!CPUtemploop}
+                else
+                    if [ ${!CPUtemploop} -gt $CPUn ]; then
+                        CPUn=${!CPUtemploop}
+                    fi
+                fi
+            fi
+        done
+fi
+AMBTEMP=$(echo "$DATADUMP" |grep "$AMBIENT_ID" |grep degrees |grep -Po '\d{2}' | tail -1)
+if [ $CPUcount != 0 ]; then
+        if [[ ! -z "$AMBTEMP" ]]; then
+                if [ "$AMBTEMP" -ge $AMBTEMP_MAX ]; then
+                        echo "Intake temp is very high!! : $AMBTEMP °C!"
+                        TEMPMOD=$MAX_MOD
+                elif [ "$AMBTEMP" -le $AMBTEMP_STEP0 ]; then
+                        TEMPMOD=$AMBTEMP_STEP0_MOD
+                elif [ "$AMBTEMP" -le $AMBTEMP_STEP1 ]; then
+                        TEMPMOD=$AMBTEMP_STEP1_MOD
+                elif [ "$AMBTEMP" -le $AMBTEMP_STEP2 ]; then
+                        TEMPMOD=$AMBTEMP_STEP2_MOD
+                elif [ "$AMBTEMP" -le $AMBTEMP_STEP3 ]; then
+                        TEMPMOD=$AMBTEMP_STEP3_MOD
+                fi
+        fi
+fi
+EXHTEMP=$(echo "$DATADUMP" |grep "$EXHAUST_ID" |grep degrees |grep -Po '\d{2}' | tail -1)
+if [[ ! -z "$EXHTEMP" ]]; then
+        if [ "$EXHTEMP" -ge $EXHTEMP_MAX ]; then
+                echo "Exhaust temp is critical!! : $EXHTEMP °C!"
+                TEMPMOD=$MAX_MOD
+        else
+                if [ $CPUcount -eq 0 ]; then
+                        TEMPMOD=0
+                fi
+        fi
+fi
+if [ $CPUcount != 0 ]; then
+        TEMP=$((CPUn+TEMPMOD))
+else
+        vTEMP=$((AMBTEMP+TEMPMOD))
+fi
+if [ $Logtype -eq 2 ]; then
+        for ((i=0; i<CPUcount; i++))
+         do if [[ $i -le $CPUcount ]]; then
+                CPUtemploopecho="CPUTEMP$i"
+                 echo "CPU$i = ${!CPUtemploopecho} °C"
+            fi
+         done
+        [ "$CPUcount" -eq 0 ] && echo "No CPU sensors = Ambient Mode"
+        [ "$TEMPgov" -eq 0 ] && [ "$CPUcount" -gt 1 ] && echo "$CPUcount CPU average = $CPUn °C"
+        [ "$TEMPgov" -eq 1 ] && [ "$CPUcount" -gt 1 ] && echo "$CPUcount CPU highest = $CPUn °C"
+        [[ ! -z "$AMBTEMP" ]] && echo "Ambient = $AMBTEMP °C" 
+        [[ ! -z "$EXHTEMP" ]] && echo "Exhaust = $EXHTEMP °C"
+        [[ "$TEMPMOD" != 0 ]] && echo "TEMPMOD = +$TEMPMOD °C"
+        if [ "$CPUcount" != 0 ]; then
+                echo  "vTEMP = $TEMP °C" 
+        else
+                echo "vTEMP = $vTEMP °C"
+        fi
+fi
+if [ $Logtype -eq 3 ]; then
+        (
+         printf 'SOURCE\tFETCH\tTEMPERATURE\n' 
+         for ((i=0; i<CPUcount; i++))
+         do if [[ $i -le $CPUcount ]]; then
+                CPUtemploopecho="CPUTEMP$i"
+                 printf '%s\t%4s\t%12s\n' "CPU$i" "OK" "${!CPUtemploopecho} °C"
+            fi
+         done
+        [ "$CPUcount" -eq 0 ] && printf '%s\t%4s\t%12s\n' "CPU" "NO" "Ambient Mode"
+        [ "$TEMPgov" -eq 0 ] && [ "$CPUcount" -gt 1 ] && printf '%s\t%4s\t%12s\n' "$CPUcount CPU average" "OK" "$CPUn °C"
+        [ "$TEMPgov" -eq 1 ] && [ "$CPUcount" -gt 1 ] && printf '%s\t%4s\t%12s\n' "$CPUcount CPU highest" "OK" "$CPUn °C"
+        [[ ! -z "$AMBTEMP" ]] && printf '%s\t%4s\t%12s\n' "Ambient" "OK" "$AMBTEMP °C" || printf '%s\t%4s\t%12s\n' "Ambient" "NO" "NaN " 
+        [[ ! -z "$EXHTEMP" ]] && printf '%s\t%4s\t%12s\n' "Exhaust" "OK" "$EXHTEMP °C" || printf '%s\t%4s\t%12s\n' "Exhaust" "NO" "NaN " 
+        [[ "$TEMPMOD" != 0 ]] && printf '%s\t%4s\t%12s\n' "TEMPMOD" "OK" "+$TEMPMOD °C" || printf '%s\t%4s\t%12s\n' "TEMPMOD" "NO" "NaN "
+        if [ "$CPUcount" != 0 ]; then
+                [[ "$TEMP" != "$CPUn" ]] && printf '%s\t%4s\t%12s\n' "vTEMP" "OK" "$TEMP °C" || printf '%s\t%4s\t%12s\n' "vTEMP" "EQ" "$TEMP °C" 
+        else
+                printf '%s\t%4s\t%12s\n' "vTEMP" "OK" "$vTEMP °C"
+        fi
+        ) | column -t -s $'\t'
+fi
+ipmifanctl=(ipmitool -I lanplus -H "$IPMIHOST" -U "$IPMIUSER" -P "$IPMIPW" -y "$IPMIEK" raw 0x30 0x30)
+function setfanspeed () { 
+        TEMP_Check=$1
+        TEMP_STEP=$2
+        FS=$3
+        if [[ $FS == "auto" ]]; then
+                [ "$Logtype" != 0 ] && echo "> $TEMP_Check °C is higher or equal to $TEMP_STEP °C. Switching to automatic fan control"
+                "${ipmifanctl[@]}" 0x01 0x01
+        else
+                HEX_value=$(printf '%#04x' "$FS")
+                [ "$Logtype" != 0 ] && echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+                "${ipmifanctl[@]}" 0x01 0x00
+                "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
+         fi
+}
+if [ $CPUcount -eq 0 ]; then
+        echo "!! AMBIANT TEMPERATURE MODE !!"
+        if [ $vTEMP -ge $AMBTEMP_MAX ]; then
+                setfanspeed $vTEMP $AMBTEMP_MAX auto
+        else        
+                for ((i=0; i<AMB_STEP_COUNT; i++))
+                do 
+                        TEMP_STEPloop="AMBTEMP_STEP$i"
+                        FSTloop="AMBTEMP_noCPU_FS_STEP$i"
+                        if [ $vTEMP -le "${!TEMP_STEPloop}" ]; then
+                                setfanspeed $vTEMP "${!TEMP_STEPloop}" "${!FSTloop}"
+                                break
+                        fi
+                done
+        fi
+else
+        if [ $TEMP -ge $MAXTEMP ]; then
+                setfanspeed "$TEMP" $MAXTEMP auto
+        else        
+                for ((i=0; i<TEMP_STEP_COUNT; i++))
+                do
+                        TEMP_STEPloop="TEMP_STEP$i"
+                        FSTloop="FST$i"
+                        if [ $TEMP -le "${!TEMP_STEPloop}" ]; then
+                                setfanspeed $TEMP "${!TEMP_STEPloop}" "${!FSTloop}"
+                                break
+                        fi
+                done
         fi
 fi
 ```
