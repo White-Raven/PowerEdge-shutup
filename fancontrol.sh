@@ -103,6 +103,10 @@ EXHTEMP_MAX=65
 #Pulling temperature data
 IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
 DATADUMP=$(echo "$IPMIPULLDATA")
+if [ -z "$DATADUMP" ]; then
+        echo "No data was pulled from IPMI".
+   exit 1
+fi
 #You can obviously use an other source than iDrac for your temperature readings, like lm-sensors for example. There it's an iDrac-centric example script.
 CPUTEMP0=$(echo "$DATADUMP" |grep "$CPUID0" |grep degrees |grep -Po '\d{2}' | tail -1)
 CPUTEMP1=$(echo "$DATADUMP" |grep "$CPUID1" |grep degrees |grep -Po '\d{2}' | tail -1)
