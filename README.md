@@ -1,4 +1,5 @@
 # PowerEdge-shutup
+- 2022 02 27 | >R3 Auto CPUn/Ambient mode switching, logging, auto hexadecimal conversion, and more.
 - 2022 02 01 | >minor update: beginner friendly guide for beginner friendly Unraid and minor edits.
 - 2021 11 10 | >/!\ r2f : fixing a small, but quite critical fluke.
 - 2021 08 19 | >R2 update: now takes in account intake and exhaust temperatures!
