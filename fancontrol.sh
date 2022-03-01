@@ -315,31 +315,32 @@ if [ $CPUcount != 0 ]; then
         fi
 else
         if $AMBDeltaMode ; then
-                if [[ ! -z "$EXHTEMP" ]] || [[ ! -z "$AMBTEMP" ]]; then
-                        if [[ -z "$EXHTEMP" ]] && [[ ! -z "$AMBTEMP" ]]; then
-                                echo "DELTA MODE ERROR => MISSING EXHAUST READING"
-                                echo "FALL BACK TO DEFAULT AMBIENT MODE"
-                                AMBDeltaMode=false
-                                EMAMBmode=false
-                        fi
-                        if [[ ! -z "$EXHTEMP" ]] && [[ -z "$AMBTEMP" ]]; then
-                                echo "DELTA MODE ERROR => MISSING AMBIENT READING"
-                                echo "FALL BACK TO EMERGENCY AMBIENT MODE"
-                                echo "!!EMERGENCY MODE => USING AMBIANT PROFILE WITH EXHAUST TEMP!!"
-                                AMBDeltaMode=false
-                                EMAMBmode=true
-                        fi
-                        if [[ -z "$EXHTEMP" ]] && [[ -z "$AMBTEMP" ]]; then
-                                echo "DELTA MODE ERROR => MISSING AMBIENT READING"
-                                echo "DELTA MODE ERROR => MISSING EXHAUST READING"
-                                echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
-                                AUTOEM=true
-                        fi
-                        if [[ -z "$DeltaR" ]] || [[ "$DeltaR" -le 0 ]]; then
-                                echo "DELTA MODE ERROR => DELTA RATIO INVALID"
-                                echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
-                                AUTOEM=true
-                        fi
+                if [[ -z "$EXHTEMP" ]] && [[ ! -z "$AMBTEMP" ]]; then
+                        echo "DELTA MODE ERROR => MISSING EXHAUST READING"
+                        echo "FALL BACK TO DEFAULT AMBIENT MODE"
+                        AMBDeltaMode=false
+                        EMAMBmode=false
+                        AMBDeltaMode=false
+                elif [[ ! -z "$EXHTEMP" ]] && [[ -z "$AMBTEMP" ]]; then
+                        echo "DELTA MODE ERROR => MISSING AMBIENT READING"
+                        echo "FALL BACK TO EMERGENCY AMBIENT MODE"
+                        echo "!!EMERGENCY MODE => USING AMBIANT PROFILE WITH EXHAUST TEMP!!"
+                        AMBDeltaMode=false
+                        EMAMBmode=true
+                        AMBDeltaMode=false
+                elif [[ -z "$EXHTEMP" ]] && [[ -z "$AMBTEMP" ]]; then
+                        echo "DELTA MODE ERROR => MISSING AMBIENT READING"
+                        echo "DELTA MODE ERROR => MISSING EXHAUST READING"
+                        echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
+                        AMBDeltaMode=false
+                        AUTOEM=true
+                        AMBDeltaMode=false
+                elif [[ -z "$DeltaR" ]] || [[ "$DeltaR" -le 0 ]]; then
+                        echo "DELTA MODE ERROR => DELTA RATIO INVALID"
+                        echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
+                        AMBDeltaMode=false
+                        AUTOEM=true
+                        AMBDeltaMode=false
                 fi
         else
                 if [[ ! -z "$EXHTEMP" ]] && [[ -z "$AMBTEMP" ]]; then
@@ -353,20 +354,22 @@ else
                         AUTOEM=true
                 else
                         EMAMBmode=false
-                fi   
+                fi 
         fi
 fi
 #vTemp
 if [ $CPUcount != 0 ]; then
         vTEMP=$((CPUn+TEMPMOD))
 else
-        if $AMBDeltaMode ; then
-                if [ "$AMBTEMP" -ge "$EXHTEMP" ]; then
-                        echo "!! Intake = $AMBTEMP°C / Exhaust = $EXHTEMP°C !!"
-                        echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
-                        AUTOEM=true
-                else
-                        vTEMP=$((EXHTEMP-AMBTEMP))
+        if [[ ! -z "$EXHTEMP" ]] && [[ ! -z "$AMBTEMP" ]]; then
+                if $AMBDeltaMode ; then
+                        if [ "$AMBTEMP" -ge "$EXHTEMP" ]; then
+                                echo "!! Intake = $AMBTEMP°C / Exhaust = $EXHTEMP°C !!"
+                                echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
+                                AUTOEM=true
+                        else
+                                vTEMP=$((EXHTEMP-AMBTEMP))
+                        fi
                 fi
         else
                 if $EMAMBmode ; then
