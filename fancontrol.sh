@@ -38,33 +38,6 @@ EXHAUST_ID=01h
 #If your load isn't consistent enough to properly profile your server, it might lead to overheating.
 #-------------------------------------------------
 
-#CPU fan governor type - keep in mind, with IPMI it's CPUs, not cores.
-#0 = uses average CPU temperature accross CPUs
-#1 = uses highest CPU temperature
-TEMPgov=0
-#Maximum allowed delta in TEMPgov0. If exceeded, switches profile to highest value.
-CPUdelta=15
-
-#Ambient fan mode - Delta mode
-#If you're running Ambient Temp mode, lacking CPU temps, you can activate this mode to switch into Delta mode.
-#Delta mode uses the temperature difference (delta) between intake (ambient) and exhaust to control fan-speed.
-#To set the Deltatemp and fan speeds for each, use the parameters for the CPU fan mode profile.
-#By default, for safety, the temperature is divided by 3, so for the default first step, 30°C of CPU temp, the delta value is 10°C.
-#To modify the ratio, modify the value DeltaR. Default is 3, no ratio is 1.
-AMBDeltaMode=false
-DeltaR=3
-
-#Logtype:
-#0 = Only Alerts
-#1 = Fan speed output + alerts
-#2 = Simple text + fanspeed output + alerts
-#3 = Table + fanspeed output + alerts
-Logtype=1
-#Log loop debug - true or false, logging of loops for debugging script
-Logloop=true
-#Looplog prefix
-l="Loop -"
-
 #There you basically define your fan curve. For each fan step temperature (in °C) you define which fan speed it uses when it's equal or under this temp.
 #For example: until it reaches step0 at 30°C, it runs at 2% fan speed, if it's above 30°C and under 35°C, it will run at 6% fan speed, ect
 #Fan speed values are to be set as for each step in the FST# value, in % between 0 and 100.
@@ -107,6 +80,33 @@ MAX_MOD=69
 
 #If your exhaust temp is reaching 65°C, you've been cooking your server. It needs the woosh.
 EXHTEMP_MAX=65
+
+#CPU fan governor type - keep in mind, with IPMI it's CPUs, not cores.
+#0 = uses average CPU temperature accross CPUs
+#1 = uses highest CPU temperature
+TEMPgov=0
+#Maximum allowed delta in TEMPgov0. If exceeded, switches profile to highest value.
+CPUdelta=15
+
+#Ambient fan mode - Delta mode
+#If you're running Ambient Temp mode, lacking CPU temps, you can activate this mode to switch into Delta mode.
+#Delta mode uses the temperature difference (delta) between intake (ambient) and exhaust to control fan-speed.
+#To set the Deltatemp and fan speeds for each, use the parameters for the CPU fan mode profile.
+#By default, for safety, the temperature is divided by 3, so for the default first step, 30°C of CPU temp, the delta value is 10°C.
+#To modify the ratio, modify the value DeltaR. Default is 3, no ratio is 1.
+AMBDeltaMode=false
+DeltaR=3
+
+#Logtype:
+#0 = Only Alerts
+#1 = Fan speed output + alerts
+#2 = Simple text + fanspeed output + alerts
+#3 = Table + fanspeed output + alerts
+Logtype=1
+#Log loop debug - true or false, logging of loops for debugging script
+Logloop=false
+#Looplog prefix
+l="Loop -"
 
 #Counting CPU Fan speed steps and setting max value
 if $Logloop ; then
