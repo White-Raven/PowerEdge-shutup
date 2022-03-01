@@ -102,7 +102,7 @@ DeltaR=3
 #1 = Fan speed output + alerts
 #2 = Simple text + fanspeed output + alerts
 #3 = Table + fanspeed output + alerts
-Logtype=1
+Logtype=2
 #Log loop debug - true or false, logging of loops for debugging script
 Logloop=false
 #Looplog prefix
