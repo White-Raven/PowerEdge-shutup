@@ -96,13 +96,15 @@ TEMPgov=0
 CPUdelta=15
 
 #Ambient fan mode - Delta mode
-#If you're running Ambient Temp mode, lacking CPU temps, you can activate this mode to switch into Delta mode.
+#If you're running Ambient Temp mode, lacking CPU temps.
 #Delta mode uses the temperature difference (delta) between intake (ambient) and exhaust to control fan-speed.
 #To set the Deltatemp and fan speeds for each, use the parameters for the CPU fan mode profile.
 #By default, for safety, the temperature is divided by 3, so for the default first step, 30°C of CPU temp, the delta value is 10°C.
 #To modify the ratio, modify the value DeltaR. Default is 3, no ratio is 1.
-AMBDeltaMode=false
+AMBDeltaMode=true
 DeltaR=3
+#If you lack Exhaust temps, there is a fallback method to solely ambiant.
+#If you lack Intake temps, or both readings, it falls back to auto-fan mode.
 
 #Log loop debug - true or false, logging of loops for debugging script
 Logloop=false
