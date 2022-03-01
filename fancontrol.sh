@@ -38,6 +38,13 @@ EXHAUST_ID=01h
 #If your load isn't consistent enough to properly profile your server, it might lead to overheating.
 #-------------------------------------------------
 
+#Logtype:
+#0 = Only Alerts
+#1 = Fan speed output + alerts
+#2 = Simple text + fanspeed output + alerts
+#3 = Table + fanspeed output + alerts
+Logtype=2
+
 #There you basically define your fan curve. For each fan step temperature (in °C) you define which fan speed it uses when it's equal or under this temp.
 #For example: until it reaches step0 at 30°C, it runs at 2% fan speed, if it's above 30°C and under 35°C, it will run at 6% fan speed, ect
 #Fan speed values are to be set as for each step in the FST# value, in % between 0 and 100.
@@ -97,12 +104,6 @@ CPUdelta=15
 AMBDeltaMode=false
 DeltaR=3
 
-#Logtype:
-#0 = Only Alerts
-#1 = Fan speed output + alerts
-#2 = Simple text + fanspeed output + alerts
-#3 = Table + fanspeed output + alerts
-Logtype=2
 #Log loop debug - true or false, logging of loops for debugging script
 Logloop=false
 #Looplog prefix
@@ -160,7 +161,6 @@ do
                 break
         fi
 done
-
 #Pulling temperature data
 IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
 DATADUMP=$(echo "$IPMIPULLDATA")
