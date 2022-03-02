@@ -420,7 +420,7 @@ if [ $Logtype -eq 2 ]; then
         [[ ! -z "$EXHTEMP" ]] && echo "Exhaust = $EXHTEMP °C"
         [[ "$CPUcount" != 0 ]] && [[ "$TEMPMOD" != 0 ]] && echo "TEMPMOD = +$TEMPMOD °C"
         if [ "$CPUcount" -ge 1 ]; then 
-                [ -z "$CPUdeltatest" ] && echo "CPUdelta : $CPUdelta °C" || printf "CPUdelta EX! : $CPUdelta °C"
+                [ -z "$CPUdeltatest" ] && echo "CPUdelta : $CPUdelta °C" || echo "CPUdelta EX! : $CPUdelta °C"
         fi
         if [ "$CPUcount" != 0 ]; then
                 echo  "vTEMP = $vTEMP °C" 
@@ -457,8 +457,8 @@ if [ $Logtype -eq 3 ]; then
                 [[ "$vTEMP" != "$CPUn" ]] && printf '%s\t%4s\t%12s\n' "vTEMP" "OK" "$vTEMP °C" || printf '%s\t%4s\t%12s\n' "vTEMP" "EQ" "$vTEMP °C" 
         else
                 if $AMBDeltaMode ; then
-                        printf '%s\t%4s\t%12s\n' "Delta Ratio" "OK" ": $DeltaR "
-                        printf '%s\t%4s\t%12s\n' "Delta A/E" "OK" " +$vTEMP °C"
+                        printf '%s\t%4s\t%12s\n' "Delta Ratio" "OK" ":$DeltaR "
+                        printf '%s\t%4s\t%12s\n' "Delta A/E" "OK" "+$vTEMP °C"
                 else
                         printf '%s\t%4s\t%12s\n' "vTEMP" "OK" "$vTEMP °C"
                 fi
