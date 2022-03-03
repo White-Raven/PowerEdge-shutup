@@ -103,8 +103,11 @@ CPUdelta=15
 #To modify the ratio, modify the value DeltaR. Default is 3, no ratio is 1.
 AMBDeltaMode=true
 DeltaR=3
+#If in delta mode, ambient temp would warrant an higher fan speed according to the ambient profile, it will use ambient profile's
+#recommendation as to protect your hardware from running with a low delta but with an overall too high temperature.
 #If you lack Exhaust temps, there is a fallback method to solely ambient.
-#If you lack Intake temps, the fall back method swaps Exhaust to intake temps, you need to modify Ambient temp stepping, because the values are too low.
+#If you lack Intake temps, the fall back method swaps Exhaust to intake temps, you need to modify Ambient temp stepping,
+#because the values are too low, even if they are safe, since fans would run higher than you might want in that case.
 #If you lack both readings, it falls back to auto-fan mode.
 
 #Log loop debug - true or false, logging of loops for debugging script
@@ -123,13 +126,22 @@ if [ "$AMBDeltaMode" != false ] && [ "$AMBDeltaMode" != true ]; then
         echo "AMBDeltaMode parameter invalid, must be true or false!"
         exit 1
 fi
-if [[ "$DeltaR" =~ $re ]]; then
+if [[ "$DeltaR" =~ $ren ]]; then
         if [ "$DeltaR" -le "0" ]; then
                 echo "DeltaR parameter invalid, must be greater than 0!"
                 exit 1
         fi
 else
         echo "DeltaR parameter invalid, not a number!"
+        exit 1
+fi
+if [[ "$CPUdelta" =~ $ren ]]; then
+        if [ "$CPUdelta" -le "0" ]; then
+                echo "CPUdelta parameter invalid, must be greater than 0!"
+                exit 1
+        fi
+else
+        echo "CPUdelta parameter invalid, not a number!"
         exit 1
 fi
 if [ "$TEMPgov" != 1 ] && [ "$TEMPgov" != 0 ]; then
@@ -349,7 +361,7 @@ if [ "$CPUcount" -gt 1 ]; then
     fi
 fi
 if [ $TEMPgov -eq 1 ] || [ $((CPUh-CPUl)) -gt $CPUdelta ]; then
-        echo "!! CPU DELTA Exceeded :!!"
+        echo "!! CPU DELTA Exceeded !!"
         echo "Lowest : $CPUl"
         echo "Highest: $CPUh"
         echo "Delta Max: $CPUdelta °C"
