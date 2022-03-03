@@ -71,11 +71,11 @@ AMBTEMP_STEP0=20
 AMBTEMP_MOD_STEP0=0
 AMBTEMP_noCPU_FS_STEP0=8
 
-AMBTEMP_STEP1=23
+AMBTEMP_STEP1=21
 AMBTEMP_MOD_STEP1=10
 AMBTEMP_noCPU_FS_STEP1=15
 
-AMBTEMP_STEP2=26
+AMBTEMP_STEP2=24
 AMBTEMP_MOD_STEP2=15
 AMBTEMP_noCPU_FS_STEP2=20
 
@@ -115,65 +115,92 @@ Logloop=false
 
 #Looplog prefix
 l="Loop -"
+
+#IPMI Commands to set fan speeds.
+# "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x01" gives back to the server the right to automate fan speed
+# "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00" stops the server from adjusting fanspeed by itself, no matter the temp
+# "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff 0x"hex value 00-64" lets you define fan speed
+
+#Hexadecimal conversion and IPMI command into a function 
+ipmifanctl=(ipmitool -I lanplus -H "$IPMIHOST" -U "$IPMIUSER" -P "$IPMIPW" -y "$IPMIEK" raw 0x30 0x30)
+function setfanspeed () { 
+        TEMP_Check=$1
+        TEMP_STEP=$2
+        FS=$3
+        if [[ $FS == "auto" ]]; then
+                if [ "$Logtype" != 0 ] && [ "$4" -eq 0 ]; then
+                        echo "> $TEMP_Check °C is higher or equal to $TEMP_STEP °C. Switching to automatic fan control"
+                fi
+                [ "$4" -eq 1 ] && echo "> ERROR : Keeping fans on auto as safety measure"
+                "${ipmifanctl[@]}" 0x01 0x01
+                exit $4
+        else
+                HEX_value=$(printf '%#04x' "$FS")
+                [ "$Logtype" != 0 ] && echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+                "${ipmifanctl[@]}" 0x01 0x00
+                "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
+                exit $4
+         fi
+}
+#Failsafe = Parameter check
 re='^[0-9]+$'
 ren='^[+-]?[0-9]+?$'
-#Failsafe = Parameter check
 if [ "$Logloop" != false ] && [ "$Logloop" != true ]; then
         echo "Logloop parameter invalid, must be true or false!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [ "$AMBDeltaMode" != false ] && [ "$AMBDeltaMode" != true ]; then
         echo "AMBDeltaMode parameter invalid, must be true or false!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [[ "$DeltaR" =~ $ren ]]; then
         if [ "$DeltaR" -le "0" ]; then
                 echo "DeltaR parameter invalid, must be greater than 0!"
-                exit 1
+                setfanspeed XX XX auto 1
         fi
 else
         echo "DeltaR parameter invalid, not a number!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [[ "$CPUdelta" =~ $ren ]]; then
         if [ "$CPUdelta" -le "0" ]; then
                 echo "CPUdelta parameter invalid, must be greater than 0!"
-                exit 1
+                setfanspeed XX XX auto 1
         fi
 else
         echo "CPUdelta parameter invalid, not a number!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [ "$TEMPgov" != 1 ] && [ "$TEMPgov" != 0 ]; then
         echo "TEMPgov parameter invalid, can only be 0 or 1!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [[ "$Logtype" =~ $ren ]]; then
         if [ "$Logtype" -lt 0 ] || [ "$Logtype" -gt 3 ]; then
                 echo "Logtype parameter invalid, must be in 0-3 range!"
-                exit 1
+                setfanspeed XX XX auto 1
         fi
 else
         echo "Logtype parameter invalid, not a number!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [[ "$EXHTEMP_MAX" =~ $ren ]]; then
         if [ "$EXHTEMP_MAX" -lt 0 ]; then
                 echo "EXHTEMP_MAX parameter invalid, can't be negative!"
-                exit 1
+                setfanspeed XX XX auto 1
         fi
 else
         echo "EXHTEMP_MAX parameter invalid, not a number!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 if [[ $MAX_MOD =~ $ren ]]; then
         if [ "$MAX_MOD" -lt 0 ]; then
                 echo "MAX_MOD parameter invalid, can't be negative!"
-                exit 1
+                setfanspeed XX XX auto 1
         fi
 else
         echo "MAX_MOD parameter invalid, not a number!"
-        exit 1
+        setfanspeed XX XX auto 1
 fi
 #Counting CPU Fan speed steps and setting max value
 if $Logloop ; then
@@ -190,17 +217,17 @@ do
                 fi
                 if ! [[ "${!inloopstep}" =~ $ren ]]; then
                         echo "Butterfinger failsafe: CPU Temperature step n°$i isn't a number!"
-                        exit 1
+                        setfanspeed XX XX auto 1
                 fi
                 if [[ "${!inloopspeed}" =~ $ren ]]; then
                         if [[ "${!inloopspeed}" -lt 0 ]]; then
                                 echo "Butterfinger failsafe: Fan speed step n°$i is negative!"
-                                exit 1
+                                setfanspeed XX XX auto 1
                         fi
 
                 else
                         echo "Butterfinger failsafe: Fan speed step n°$i isn't a number!"
-                        exit 1
+                        setfanspeed XX XX auto 1
                 fi
         else
                 inloopmaxstep="TEMP_STEP$((i-1))"
@@ -231,7 +258,7 @@ do
                 fi
                 if ! [[ "${!inloopstep}" =~ $ren ]]; then
                         echo "Butterfinger failsafe: Ambient temperature step n°$i isn't a number!"
-                        exit 1
+                        setfanspeed XX XX auto 1
                 fi
                 if [[ "${!inloopmod}" =~ $ren ]]; then
                         if [[ "${!inloopmod}" -lt 0 ]]; then
@@ -241,17 +268,17 @@ do
 
                 else
                         echo "Butterfinger failsafe: Ambient modifier for CPU temp step n°$i isn't a number!"
-                        exit 1
+                        setfanspeed XX XX auto 1
                 fi
                 if [[ "${!inloopspeed}" =~ $ren ]]; then
                         if [[ "${!inloopspeed}" -lt 0 ]]; then
                                 echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i is negative!"
-                                exit 1
+                                setfanspeed XX XX auto 1
                         fi
 
                 else
                         echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i isn't a number!"
-                        exit 1
+                        setfanspeed XX XX auto 1
                 fi
         else
                 inloopmaxstep="AMBTEMP_STEP$((i-1))"
@@ -270,7 +297,7 @@ IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMI
 DATADUMP=$(echo "$IPMIPULLDATA")
 if [ -z "$DATADUMP" ]; then
         echo "No data was pulled from IPMI"
-        exit 1
+        setfanspeed XX XX auto 1
 else
         AUTOEM=false
 fi
@@ -286,7 +313,7 @@ if [ -z "$CPUTEMP0" ]; then
 else
         if [[ ! -z "$CPUTEMP0" ]]; then #Infinite CPU number adding, if you pull individual CPU cores from lm-sensors or something
                 for ((i=0; i>=0 ; i++))
-                    do 
+                    do
                         CPUcountloop="CPUTEMP$i"
                         if [[ ! -z "${!CPUcountloop}" ]]; then
                                 if $Logloop ; then
@@ -302,11 +329,11 @@ else
                                 CPUcount=$((i+1))
                                 TEMPadd=$((TEMPadd+currcputemp))
                         else
-                                if [[ $((CPUcount % 2)) -eq 0 ]] || [[ $CPUcount -eq 1 ]]; then 
+                                if [[ $((CPUcount % 2)) -eq 0 ]] || [[ $CPUcount -eq 1 ]]; then
                                         if $Logloop ; then
-                                                if [ "$CPUcount" -eq "1" ]; then 
+                                                if [ "$CPUcount" -eq "1" ]; then
                                                         echo "$l CPU count : $CPUcount CPU detected!"
-                                                else 
+                                                else
                                                         echo "$l CPU count is even : $CPUcount CPU detected!"
                                                 fi
                                                 echo "$l CPU counting = stop"
@@ -379,9 +406,9 @@ if [ $CPUcount != 0 ]; then
                 if [ "$AMBTEMP" -ge $AMBTEMP_MAX ]; then
                         echo "Intake temp is very high!! : $AMBTEMP °C!"
                         TEMPMOD=$MAX_MOD
-                else        
+                else
                         for ((i=0; i<AMB_STEP_COUNT; i++))
-                        do 
+                        do
                                 AMBTEMP_STEPloop="AMBTEMP_STEP$i"
                                 if $Logloop ; then
                                         echo "$l Checking for Ambient temperature($AMBTEMP) =< Ambient temperature step n°$i(${!AMBTEMP_STEPloop})"
@@ -398,11 +425,7 @@ if [ $CPUcount != 0 ]; then
                                 fi
                         done
                 fi
-        else
-                echo "!!!No Ambient nor CPU temperature available : Unsupported!!!"
-                echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
-                AUTOEM=true
-        fi
+	fi
 fi
 #Exhaust temperature modifier when CPU temps are available and Checks for Delta Mode and Ambient mode
 EXHTEMP=$(echo "$DATADUMP" |grep "$EXHAUST_ID" |grep degrees |grep -Po '\d{2}' | tail -1)
@@ -411,7 +434,7 @@ if [ $CPUcount != 0 ]; then
                 if [ "$EXHTEMP" -ge $EXHTEMP_MAX ]; then
                         echo "Exhaust temp is critical!! : $EXHTEMP °C!"
                         TEMPMOD=$MAX_MOD
-                fi        
+                fi
         fi
 else
         if $AMBDeltaMode ; then
@@ -454,9 +477,9 @@ else
                                 if [ "$EXHTEMP" -ge $EXHTEMP_MAX ]; then
                                         echo "Exhaust temp is critical!! : $EXHTEMP °C!"
                                         TEMPMOD=$MAX_MOD
-                                fi        
+                                fi
                         fi
-                fi 
+                fi
         fi
 fi
 #vTemp
@@ -488,31 +511,9 @@ else
                 fi
         fi
 fi
-#IPMI Commands to set fan speeds.
-# "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x01" gives back to the server the right to automate fan speed
-# "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00" stops the server from adjusting fanspeed by itself, no matter the temp
-# "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff 0x"hex value 00-64" lets you define fan speed
-
-#Hexadecimal conversion and IPMI command into a function 
-ipmifanctl=(ipmitool -I lanplus -H "$IPMIHOST" -U "$IPMIUSER" -P "$IPMIPW" -y "$IPMIEK" raw 0x30 0x30)
-function setfanspeed () { 
-        TEMP_Check=$1
-        TEMP_STEP=$2
-        FS=$3
-        if [[ $FS == "auto" ]]; then
-                [ "$Logtype" != 0 ] && echo "> $TEMP_Check °C is higher or equal to $TEMP_STEP °C. Switching to automatic fan control"
-                "${ipmifanctl[@]}" 0x01 0x01
-                exit 0
-        else
-                HEX_value=$(printf '%#04x' "$FS")
-                [ "$Logtype" != 0 ] && echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
-                "${ipmifanctl[@]}" 0x01 0x00
-                "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
-                exit 0
-         fi
-}
+#Emergency mode trigger
 if $AUTOEM ; then
-        setfanspeed XX XX auto
+        setfanspeed XX XX auto 1
 fi
 #Logtype logic
 if [ $Logtype -eq 2 ]; then
@@ -582,7 +583,7 @@ if [ $CPUcount -eq 0 ]; then
                 echo "!! A/E DELTA TEMPERATURE MODE !!"
                 if [ $vTEMP -ge $((MAXTEMP / DeltaR)) ]; then
                         echo "!! A/E DELTA : Delta check = Temperature Critical trigger!!"
-                        setfanspeed "$DeltaR x $vTEMP" $MAXTEMP auto
+                        setfanspeed "$DeltaR x $vTEMP" $MAXTEMP auto 0
                 else
                         if $Logloop ; then
                                 echo "$l New loop => Defining fan speeds according to Delta A/E to CPU temp steps : $DeltaR"
@@ -609,7 +610,7 @@ if [ $CPUcount -eq 0 ]; then
                         done
                         if [ "$AMBTEMP" -ge $AMBTEMP_MAX ]; then
                                 echo "!! A/E DELTA : Ambient check = Temperature Critical trigger!!"
-                                setfanspeed "$AMBTEMP" $AMBTEMP_MAX auto
+                                setfanspeed "$AMBTEMP" $AMBTEMP_MAX auto 0
                         else        
                                 if $Logloop ; then
                                         echo "$l New loop => Checking fan speeds according to values provided by Ambiant temp steps"
@@ -638,7 +639,7 @@ if [ $CPUcount -eq 0 ]; then
                                 echo "Ambient temp fan step : $AMBloop_arg3 %"
                                 echo "Delta A/E fan step : $DAEloop_arg3 %"
                                 echo "Ambient temperature ($AMBloop_arg1°C) requires higher cooling than Delta A/E profile."
-                                setfanspeed "$AMBloop_arg1" "$AMBloop_arg2" "$AMBloop_arg3"
+                                setfanspeed "$AMBloop_arg1" "$AMBloop_arg2" "$AMBloop_arg3" 0
                                 if $Logloop ; then
                                         echo "$l Result Compare: Ambient profile selected"
                                 fi
@@ -646,14 +647,14 @@ if [ $CPUcount -eq 0 ]; then
                                 if $Logloop ; then
                                         echo "$l Result Compare: Delta A/E profile selected"
                                 fi
-                                setfanspeed "$DAEloop_arg1" "$DAEloop_arg2" "$DAEloop_arg3"
+                                setfanspeed "$DAEloop_arg1" "$DAEloop_arg2" "$DAEloop_arg3" 0
                         fi
                 fi
         else
                 echo "!! AMBIANT TEMPERATURE MODE !!"
                 if [ $vTEMP -ge $AMBTEMP_MAX ]; then
                         echo "!! Ambient check = Temperature Critical trigger !!"
-                        setfanspeed $vTEMP $AMBTEMP_MAX auto
+                        setfanspeed $vTEMP $AMBTEMP_MAX auto 0
                 else        
                         if $Logloop ; then
                                 echo "$l New loop => Defining fan speeds according to values provided by Ambiant temp steps"
@@ -671,7 +672,7 @@ if [ $CPUcount -eq 0 ]; then
                                                 echo "$l sending command #setfanspeed $vTEMP°C ${!TEMP_STEPloop}°C ${!FSTloop}%"
                                                 echo "$l Ambient temperature Fan Speed control - Stop"
                                         fi
-                                        setfanspeed $vTEMP "${!TEMP_STEPloop}" "${!FSTloop}"
+                                        setfanspeed $vTEMP "${!TEMP_STEPloop}" "${!FSTloop}" 0
                                         break
                                 fi
                         done
@@ -679,7 +680,7 @@ if [ $CPUcount -eq 0 ]; then
         fi
 else
         if [ $vTEMP -ge $MAXTEMP ]; then
-                setfanspeed "$vTEMP" $MAXTEMP auto
+                setfanspeed "$vTEMP" $MAXTEMP auto 0
                 echo "!! CPU MODE : Temperature Critical trigger!!"
         else
                 if $Logloop ; then
@@ -698,7 +699,7 @@ else
                                         echo "$l Sending command #setfanspeed $vTEMP°C ${!TEMP_STEPloop}°C ${!FSTloop}%"
                                         echo "$l CPU temperature Fan Speed control - Stop"
                                 fi
-                                setfanspeed $vTEMP "${!TEMP_STEPloop}" "${!FSTloop}"
+                                setfanspeed $vTEMP "${!TEMP_STEPloop}" "${!FSTloop}" 0
                                 break
                         fi
                 done
