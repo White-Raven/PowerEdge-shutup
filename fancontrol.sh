@@ -438,6 +438,12 @@ else
                         AUTOEM=true
                 else
                         EMAMBmode=false
+                        if [[ ! -z "$EXHTEMP" ]]; then
+                                if [ "$EXHTEMP" -ge $EXHTEMP_MAX ]; then
+                                        echo "Exhaust temp is critical!! : $EXHTEMP °C!"
+                                        TEMPMOD=$MAX_MOD
+                                fi        
+                        fi
                 fi 
         fi
 fi
@@ -455,10 +461,16 @@ else
                         else
                                 vTEMP=$((EXHTEMP-AMBTEMP))
                         fi
+                else
+                        if $EMAMBmode ; then
+                                vTEMP=$EXHTEMP
+                        else
+                                vTEMP=$((AMBTEMP+TEMPMOD))
+                        fi
                 fi
         else
                 if $EMAMBmode ; then
-                        vTEMP=$((EXHTEMP+TEMPMOD))
+                        vTEMP=$EXHTEMP
                 else
                         vTEMP=$((AMBTEMP+TEMPMOD))
                 fi
