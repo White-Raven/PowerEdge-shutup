@@ -491,7 +491,7 @@ else
         fi
 fi
 #vTemp
-if [ -z "$TEMPMOD" ];
+if [ -z "$TEMPMOD" ]; then
 	TEMPMOD=0
 fi
 if [ $CPUcount != 0 ]; then
