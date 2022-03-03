@@ -231,6 +231,10 @@ do
                 fi
         else
                 inloopmaxstep="TEMP_STEP$((i-1))"
+		if [ $((i-1)) -le 0 ]; then
+                        echo "Butterfinger failsafe: no CPU stepping found!!"
+                        setfanspeed XX XX auto 1
+                fi
                 MAXTEMP="${!inloopmaxstep}"
                 TEMP_STEP_COUNT=$i
                 if $Logloop ; then
@@ -282,6 +286,10 @@ do
                 fi
         else
                 inloopmaxstep="AMBTEMP_STEP$((i-1))"
+		if [ $((i-1)) -le 0 ]; then
+                        echo "Butterfinger failsafe: no Ambient stepping found!!"
+                        setfanspeed XX XX auto 1
+                fi
                 AMBTEMP_MAX="${!inloopmaxstep}"
                 AMB_STEP_COUNT=$i
                 if $Logloop ; then
@@ -483,6 +491,9 @@ else
         fi
 fi
 #vTemp
+if [ -z "$TEMPMOD" ];
+	TEMPMOD=0
+fi
 if [ $CPUcount != 0 ]; then
         vTEMP=$((CPUn+TEMPMOD))
 else
