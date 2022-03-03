@@ -1,4 +1,5 @@
 # PowerEdge-shutup
+- 2022 03 03 | >R4 Deltacheck CPU mode, DeltaA/E with Ambient check, failsafes, infinite CPU count.
 - 2022 02 27 | >minor update: adding IPMI-fail fail-safe.
 - 2022 02 27 | >R3 Auto CPUn/Ambient mode switching, logging, auto hexadecimal conversion, and more.
 - 2022 02 01 | >minor update: beginner friendly guide for beginner friendly Unraid and minor edits.
@@ -27,7 +28,7 @@ I'ld just appreciate that if you itterate on it or send it somewhere, you could 
 
 As of what you can do with these great little commands... well..
 
-You can run them as a cron job, or create a loop, or add some calculations pulling data for the inlet/outlet to fine tune even more, but point is, lets you set your fan speed to bare minimum RPM depending of how warm or cool is your room and how hard you hit your servers.
+You can run them as a cron job, or create a loop, but point is, lets you set your fan speed to bare minimum RPM depending of how warm or cool is your room and how hard you hit your servers.
 
 
 
@@ -46,6 +47,6 @@ I simply haven't included all that because it's a lot more cumbersome and needs 
 
 
 ----------------
-*_G11 seem to lack CPU temps in the data you can pull and rely on. Beware of the comments about it in the script._
+*_G11 seem to lack CPU temps in the data you can pull and rely on. Beware of the comments about it in the script, look for Delta A/E mode and Ambient mode._
 
 **_I was told it is also working on iDrac8 (G13) and iDrac9 (G14), but that beyond iDrac update 3.30.30.30 for G13 and 3.34.34.34 for G14, Dell has modified/removed the ability to control the fans via IMPI._
