@@ -365,6 +365,7 @@ else
                 if $AMBDeltaMode ; then
                         if [ "$AMBTEMP" -ge "$EXHTEMP" ]; then
                                 echo "!! Intake = $AMBTEMP°C / Exhaust = $EXHTEMP°C !!"
+                                echo "?Insufficient or reverse airflow?"
                                 echo "!!EMERGENCY MODE => FALL BACK TO AUTO FAN PROFILE!!"
                                 AUTOEM=true
                         else
@@ -472,10 +473,11 @@ if [ $CPUcount -eq 0 ]; then
         if $AMBDeltaMode ; then
                 echo "!! A/E DELTA TEMPERATURE MODE !!"
                 if [ $vTEMP -ge $((MAXTEMP / DeltaR)) ]; then
+                        echo "!! A/E DELTA : Delta check = Temperature Critical trigger!!"
                         setfanspeed "$DeltaR x $vTEMP" $MAXTEMP auto
                 else
                         if $Logloop ; then
-                                echo "$l New loop => Defining fan speeds according to values provided by step"
+                                echo "$l New loop => Defining fan speeds according to Delta A/E to CPU temp steps : $DeltaR"
                         fi
                         for ((i=0; i<TEMP_STEP_COUNT; i++))
                         do
@@ -488,21 +490,65 @@ if [ $CPUcount -eq 0 ]; then
                                 if [ $vTEMP -le "$((TEMP_STEPloop / DeltaR))" ]; then
                                         if $Logloop ; then
                                                 echo "$l Test vTEMP(=EXHTEMP-AMBTEMP)($EXHTEMP-$AMBTEMP=$vTEMP) is =< TEMP_STEP$i($TEMP_STEPloop) by ratio $DeltaR"
-                                                echo "$l Sending command #setfanspeed $DeltaR x $vTEMP°C $TEMP_STEPloop°C ${!FSTloop}%"
+                                                echo "$l Buffering command #setfanspeed $DeltaR x $vTEMP°C $TEMP_STEPloop°C ${!FSTloop}%"
                                                 echo "$l CPU temperature Fan Speed control - Stop"
                                         fi
-                                        setfanspeed "$DeltaR x $vTEMP" $TEMP_STEPloop "${!FSTloop}"
+                                        DAEloop_arg1="$DeltaR x $vTEMP"
+                                        DAEloop_arg2=$TEMP_STEPloop
+                                        DAEloop_arg3="${!FSTloop}"
                                         break
                                 fi
                         done
+                        if [ "$AMBTEMP" -ge $AMBTEMP_MAX ]; then
+                                echo "!! A/E DELTA : Ambient check = Temperature Critical trigger!!"
+                                setfanspeed "$AMBTEMP" $AMBTEMP_MAX auto
+                        else        
+                                if $Logloop ; then
+                                        echo "$l New loop => Checking fan speeds according to values provided by Ambiant temp steps"
+                                fi
+                                for ((i=0; i<AMB_STEP_COUNT; i++))
+                                do 
+                                        TEMP_STEPloop="AMBTEMP_STEP$i"
+                                        FSTloop="AMBTEMP_noCPU_FS_STEP$i"
+                                        if $Logloop ; then
+                                                echo "$l Test AMBTEMP($AMBTEMP) =< AMBTEMP_STEP$i(${!TEMP_STEPloop})"
+                                        fi
+                                        if [ "$AMBTEMP" -le "${!TEMP_STEPloop}" ]; then
+                                                if $Logloop ; then
+                                                        echo "$l Result AMBTEMP($AMBTEMP) is =< AMBTEMP_STEP$i(${!TEMP_STEPloop})"
+                                                        echo "$l Buffering #setfanspeed $AMBTEMP°C ${!TEMP_STEPloop}°C ${!FSTloop}%"
+                                                        echo "$l Ambient temperature Fan Speed control - Stop"
+                                                fi
+                                                AMBloop_arg1=$AMBTEMP
+                                                AMBloop_arg2="${!TEMP_STEPloop}"
+                                                AMBloop_arg3="${!FSTloop}"
+                                                break
+                                        fi
+                                done
+                        fi
+                        if [ $AMBloop_arg3 -gt $DAEloop_arg3 ]; then
+                                echo "Ambient temp fan step : $AMBloop_arg3 %"
+                                echo "Delta A/E fan step : $DAEloop_arg3 %"
+                                echo "Ambient temperature ($AMBloop_arg1°C) requires higher cooling than Delta A/E profile."
+                                setfanspeed "$AMBloop_arg1" "$AMBloop_arg2" "$AMBloop_arg3"
+                                if $Logloop ; then
+                                        echo "$l Result Compare: Ambient profile selected"
+                                fi
+                        else
+                                if $Logloop ; then
+                                        echo "$l Result Compare: Delta A/E profile selected"
+                                fi
+                                setfanspeed "$DAEloop_arg1" "$DAEloop_arg2" "$DAEloop_arg3"
+                        fi
                 fi
         else
                 echo "!! AMBIANT TEMPERATURE MODE !!"
                 if [ $vTEMP -ge $AMBTEMP_MAX ]; then
+                        echo "!! Ambient check = Temperature Critical trigger !!"
                         setfanspeed $vTEMP $AMBTEMP_MAX auto
                 else        
                         if $Logloop ; then
-                                echo "$l New loop => Defining fan speeds according to values provided by step"
+                                echo "$l New loop => Defining fan speeds according to values provided by Ambiant temp steps"
                         fi
                         for ((i=0; i<AMB_STEP_COUNT; i++))
                         do 
@@ -526,9 +572,10 @@ if [ $CPUcount -eq 0 ]; then
 else
         if [ $vTEMP -ge $MAXTEMP ]; then
                 setfanspeed "$vTEMP" $MAXTEMP auto
+                echo "!! CPU MODE : Temperature Critical trigger!!"
         else
                 if $Logloop ; then
-                        echo "$l New loop => Defining fan speeds according to values provided by step"
+                        echo "$l New loop => Defining fan speeds according to values provided by CPU temp steps"
                 fi
                 for ((i=0; i<TEMP_STEP_COUNT; i++))
                 do
