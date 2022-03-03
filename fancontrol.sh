@@ -125,6 +125,28 @@ do
                         echo "$l CPU Temperature step n°$i = ${!inloopstep}°C"
                         echo "$l Fan speed step n°$i = ${!inloopspeed}%"
                 fi
+                if [ "${!inloopstep}" =~ $re ]; then
+                        echo "Butterfinger failsafe: CPU Temperature step n°$i isn't a number!"
+                        break
+                        exit 1
+                then
+                        if [ "${!inloopstep}" -lt 0 ]; then
+                                echo "Butterfinger failsafe: CPU Temperature step n°$i is negative!"
+                                break
+                                exit 1
+                        fi
+                fi
+                if [ "${!inloopspeed}" =~ $re ]; then
+                        echo "Butterfinger failsafe: Fan speed step n°$i isn't a number!"
+                        break
+                        exit 1
+                else
+                        if [ "${!inloopspeed}" -lt 0 ]; then
+                                echo "Butterfinger failsafe: Fan speed step n°$i isn't a negative!"
+                                break
+                                exit 1
+                        fi
+                fi
         else
                 inloopmaxstep="TEMP_STEP$((i-1))"
                 MAXTEMP="${!inloopmaxstep}"
@@ -151,6 +173,38 @@ do
                         echo "$l Ambient temperature step n°$i = ${!inloopstep}°C"
                         echo "$l Ambient modifier for CPU temp step n°$i = +${!inloopmod}°C"
                         echo "$l Ambient NO CPU fan speed step n°$i = ${!inloopspeed}%"
+                fi
+                if [ "${!inloopstep}" =~ $re ]; then
+                        echo "Butterfinger failsafe: Ambient temperature step n°$i isn't a number!"
+                        break
+                        exit 1
+                else
+                        if [ "${!inloopstep}" -lt 0 ]; then
+                                echo "Butterfinger failsafe: Ambient temperature step n°$i isn't a negative!"
+                                break
+                                exit 1
+                        fi
+                fi
+                if [ "${!inloopmod}" =~ $re ]; then
+                        echo "Butterfinger failsafe: Ambient modifier for CPU temp step n°$i isn't a number!"
+                        break
+                        exit 1
+                then
+                        if [ "${!inloopmod}" -lt 0 ]; then
+                                echo "Beware: Ambient modifier for CPU temp step n°$i is negative!"
+                                echo "Proceeding..."
+                        fi
+                fi
+                if [ "${!inloopspeed}" =~ $re ]; then
+                        echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i isn't a number!"
+                        break
+                        exit 1
+                then
+                        if [ "${!inloopspeed}" -lt 0 ]; then
+                                echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i is negative!"
+                                break
+                                exit 1
+                        fi
                 fi
         else
                 inloopmaxstep="AMBTEMP_STEP$((i-1))"
