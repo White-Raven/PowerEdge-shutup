@@ -109,9 +109,60 @@ DeltaR=3
 
 #Log loop debug - true or false, logging of loops for debugging script
 Logloop=false
+
 #Looplog prefix
 l="Loop -"
-
+re='^[0-9]+$'
+ren='^[+-]?[0-9]+?$'
+#Failsafe = Parameter check
+if [ "$Logloop" != false ] && [ "$Logloop" != true ]; then
+        echo "Logloop parameter invalid, must be true or false!"
+        exit 1
+fi
+if [ "$AMBDeltaMode" != false ] && [ "$AMBDeltaMode" != true ]; then
+        echo "AMBDeltaMode parameter invalid, must be true or false!"
+        exit 1
+fi
+if [[ "$DeltaR" =~ $re ]]; then
+        if [ "$DeltaR" -le "0" ]; then
+                echo "DeltaR parameter invalid, must be greater than 0!"
+                exit 1
+        fi
+else
+        echo "DeltaR parameter invalid, not a number!"
+        exit 1
+fi
+if [ "$TEMPgov" != 1 ] && [ "$TEMPgov" != 0 ]; then
+        echo "TEMPgov parameter invalid, can only be 0 or 1!"
+        exit 1
+fi
+if [[ "$Logtype" =~ $ren ]]; then
+        if [ "$Logtype" -lt 0 ] || [ "$Logtype" -gt 3 ]; then
+                echo "Logtype parameter invalid, must be in 0-3 range!"
+                exit 1
+        fi
+else
+        echo "Logtype parameter invalid, not a number!"
+        exit 1
+fi
+if [[ "$EXHTEMP_MAX" =~ $ren ]]; then
+        if [ "$EXHTEMP_MAX" -lt 0 ]; then
+                echo "EXHTEMP_MAX parameter invalid, can't be negative!"
+                exit 1
+        fi
+else
+        echo "EXHTEMP_MAX parameter invalid, not a number!"
+        exit 1
+fi
+if [[ $MAX_MOD =~ $ren ]]; then
+        if [ "$MAX_MOD" -lt 0 ]; then
+                echo "MAX_MOD parameter invalid, can't be negative!"
+                exit 1
+        fi
+else
+        echo "MAX_MOD parameter invalid, not a number!"
+        exit 1
+fi
 #Counting CPU Fan speed steps and setting max value
 if $Logloop ; then
         echo "$l New loop => Counting CPU Fan speed steps and setting max value"
@@ -125,27 +176,19 @@ do
                         echo "$l CPU Temperature step n°$i = ${!inloopstep}°C"
                         echo "$l Fan speed step n°$i = ${!inloopspeed}%"
                 fi
-                if [ "${!inloopstep}" =~ $re ]; then
+                if ! [[ "${!inloopstep}" =~ $ren ]]; then
                         echo "Butterfinger failsafe: CPU Temperature step n°$i isn't a number!"
-                        break
                         exit 1
-                then
-                        if [ "${!inloopstep}" -lt 0 ]; then
-                                echo "Butterfinger failsafe: CPU Temperature step n°$i is negative!"
-                                break
-                                exit 1
-                        fi
                 fi
-                if [ "${!inloopspeed}" =~ $re ]; then
-                        echo "Butterfinger failsafe: Fan speed step n°$i isn't a number!"
-                        break
-                        exit 1
-                else
-                        if [ "${!inloopspeed}" -lt 0 ]; then
-                                echo "Butterfinger failsafe: Fan speed step n°$i isn't a negative!"
-                                break
+                if [[ "${!inloopspeed}" =~ $ren ]]; then
+                        if [[ "${!inloopspeed}" -lt 0 ]]; then
+                                echo "Butterfinger failsafe: Fan speed step n°$i is negative!"
                                 exit 1
                         fi
+
+                else
+                        echo "Butterfinger failsafe: Fan speed step n°$i isn't a number!"
+                        exit 1
                 fi
         else
                 inloopmaxstep="TEMP_STEP$((i-1))"
@@ -174,37 +217,29 @@ do
                         echo "$l Ambient modifier for CPU temp step n°$i = +${!inloopmod}°C"
                         echo "$l Ambient NO CPU fan speed step n°$i = ${!inloopspeed}%"
                 fi
-                if [ "${!inloopstep}" =~ $re ]; then
+                if ! [[ "${!inloopstep}" =~ $ren ]]; then
                         echo "Butterfinger failsafe: Ambient temperature step n°$i isn't a number!"
-                        break
                         exit 1
-                else
-                        if [ "${!inloopstep}" -lt 0 ]; then
-                                echo "Butterfinger failsafe: Ambient temperature step n°$i isn't a negative!"
-                                break
-                                exit 1
-                        fi
                 fi
-                if [ "${!inloopmod}" =~ $re ]; then
-                        echo "Butterfinger failsafe: Ambient modifier for CPU temp step n°$i isn't a number!"
-                        break
-                        exit 1
-                then
-                        if [ "${!inloopmod}" -lt 0 ]; then
+                if [[ "${!inloopmod}" =~ $ren ]]; then
+                        if [[ "${!inloopmod}" -lt 0 ]]; then
                                 echo "Beware: Ambient modifier for CPU temp step n°$i is negative!"
                                 echo "Proceeding..."
                         fi
-                fi
-                if [ "${!inloopspeed}" =~ $re ]; then
-                        echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i isn't a number!"
-                        break
+
+                else
+                        echo "Butterfinger failsafe: Ambient modifier for CPU temp step n°$i isn't a number!"
                         exit 1
-                then
-                        if [ "${!inloopspeed}" -lt 0 ]; then
+                fi
+                if [[ "${!inloopspeed}" =~ $ren ]]; then
+                        if [[ "${!inloopspeed}" -lt 0 ]]; then
                                 echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i is negative!"
-                                break
                                 exit 1
                         fi
+
+                else
+                        echo "Butterfinger failsafe: Ambient NO CPU fan speed step n°$i isn't a number!"
+                        exit 1
                 fi
         else
                 inloopmaxstep="AMBTEMP_STEP$((i-1))"
@@ -238,7 +273,6 @@ if [ -z "$CPUTEMP0" ]; then
         CPUcount=0
 else
         if [[ ! -z "$CPUTEMP0" ]]; then #Infinite CPU number adding, if you pull individual CPU cores from lm-sensors or something
-                re='^[0-9]+$'
                 for ((i=0; i>=0 ; i++))
                     do 
                         CPUcountloop="CPUTEMP$i"
@@ -247,7 +281,7 @@ else
                                         echo "$l CPU detection = CPU$i detected / Value = ${!CPUcountloop}"
                                 fi
                                 if ! [[ "${!CPUcountloop}" =~ $re ]] ; then
-                                   echo "!!error: Reading is not a number!!"
+                                   echo "!!error: Reading is not a number or negative!!"
                                    echo "Falling back to ambient mode..."
                                    CPUcount=0
                                    break
@@ -471,7 +505,7 @@ if [ $Logtype -eq 2 ]; then
         [[ ! -z "$EXHTEMP" ]] && echo "Exhaust = $EXHTEMP °C"
         [[ "$CPUcount" != 0 ]] && [[ "$TEMPMOD" != 0 ]] && echo "TEMPMOD = +$TEMPMOD °C"
         if [ "$CPUcount" -ge 1 ]; then 
-                [ -z "$CPUdeltatest" ] && echo "CPUdelta : $CPUdelta °C" || echo "CPUdelta EX! : $CPUdelta °C"
+                [ -z "$CPUdeltatest" ] && echo "CPUdelta = $CPUdelta °C" || echo "CPUdelta EX! = $CPUdelta °C"
         fi
         if [ "$CPUcount" != 0 ]; then
                 echo  "vTEMP = $vTEMP °C" 
