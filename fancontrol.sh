@@ -41,6 +41,10 @@ NICPUdatadump_command=(sensors -A)
 NICPUdatadump_device="coretemp-isa-"
 #Top level device count of numbers. For example coretemp-isa-0000 and coretemp-isa-0001 on a R720, coretemp-isa-#### would be 4.
 NICPUdatadump_device_num=4
+#"Core #" label for grep
+NICPUdatadump_core=Core
+#Where to cut in the line
+NICPUdatadump_cut="-c16-18"
 #Temperature offset : Some drivers report higher or lower temps than real world. Your offset must be an integer (ex: 0, -5, 12)
 NICPUdatadump_offset=0
 #IPMI data can be still used for Ambient and Exhaust data, but if you want to ignore pulling IPMI data all together, you can toggle it to false.
@@ -344,7 +348,7 @@ if $NICPU_toggle ; then
 			for ((i=0; i>=0 ; i++))
 			do
 				[ -z "$corecount" ] && corecount=0
-				Corecountloop_data=$( echo "$datadump" | grep -A 0 "Core $i"| cut -c16-18)
+				Corecountloop_data=$( echo "$datadump" | grep -A 0 "$NICPUdatadump_core $i"| cut "$NICPUdatadump_cut")
 				if [[ ! -z $Corecountloop_data ]]; then
 					declare CPUTEMP$corecount="$((Corecountloop_data+NICPUdatadump_offset))"
 					if $Logloop ; then
