@@ -312,15 +312,6 @@ do
                 break
         fi
 done
-#Pulling temperature data
-IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
-DATADUMP=$(echo "$IPMIPULLDATA")
-if [ -z "$DATADUMP" ]; then
-        echo "No data was pulled from IPMI"
-        setfanspeed XX XX auto 1
-else
-        AUTOEM=false
-fi
 #Pulling temperature data from IPMI
 if $IPMIDATA_toggle ; then
 	IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
