@@ -269,7 +269,7 @@ do
         if [[ ! -z "${!inloopspeed}" ]] && [[ ! -z "${!inloopmod}" ]] && [[ ! -z "${!inloopstep}" ]]; then
                 if $Logloop ; then
                         echo "$l Ambient temperature step n°$i = ${!inloopstep}°C"
-                        echo "$l Ambient modifier for CPU temp step n°$i = +${!inloopmod}°C"
+                        echo "$l Ambient modifier for CPU temp step n°$i = ${!inloopmod}°C"
                         echo "$l Ambient NO CPU fan speed step n°$i = ${!inloopspeed}%"
                 fi
                 if ! [[ "${!inloopstep}" =~ $ren ]]; then
@@ -306,7 +306,7 @@ do
                 AMB_STEP_COUNT=$i
                 if $Logloop ; then
                         echo "$l Ambient temperature step count = $i"
-                        echo "$l Ambient max temperature to max mod = $AMBTEMP_MAX"
+                        echo "$l Ambient max temperature to max mod = $AMBTEMP_MAX°C"
                         echo "$l CPU Ambiant Steps counting = stop"
                 fi
                 break
@@ -453,15 +453,15 @@ if [ "$CPUcount" -gt 1 ]; then
             fi
         done
     if $Logloop ; then
-        echo "$l Result = $CPUh"
-        echo "$l Result = $CPUl"
+        echo "$l Lowest = $CPUl°C"
+        echo "$l Highest = $CPUh°C"
         echo "$l CPU Find highest = stop"
     fi
 fi
 if [ $TEMPgov -eq 1 ] || [ $((CPUh-CPUl)) -gt $CPUdelta ]; then
         echo "!! CPU DELTA Exceeded !!"
-        echo "Lowest : $CPUl"
-        echo "Highest: $CPUh"
+        echo "Lowest : $CPUl°C"
+        echo "Highest: $CPUh°C"
         echo "Delta Max: $CPUdelta °C"
         echo "Switching CPU profile..."
         CPUdeltatest=1
