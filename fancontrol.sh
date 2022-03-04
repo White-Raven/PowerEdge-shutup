@@ -332,6 +332,7 @@ else
 fi
 #Parsing CPU Temp data into values to be later checked in count, continuity and value validity.
 if $NICPU_toggle ; then
+	echo "Non-IPMI data source. An error can be thrown without incidence."
 	if $Logloop ; then
 		echo "$l New loop => Pulling data dynamically from Non-IPMI source"
 	fi
