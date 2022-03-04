@@ -38,6 +38,58 @@ EXHAUST_ID=01h
 #If your load isn't consistent enough to properly profile your server, it might lead to overheating.
 #-------------------------------------------------
 
+#Non-IPMI data source for CPU:
+NICPU_toggle=false
+#Command, or you way to pull data per device (here, using coretemp driver's coretemp-isa-#### )
+NICPUdatadump_command=(sensors -A)
+#Top level Device scan
+NICPUdatadump_device="coretemp-isa-"
+#Top level device count of numbers. For example coretemp-isa-0000 and coretemp-isa-0001 on a R720, coretemp-isa-#### would be 4.
+NICPUdatadump_device_num=4
+
+if $NICPU_toggle ; then
+	if $Logloop ; then
+		echo "$l New loop => Pulling data dynamically from Non-IPMI source"
+	fi
+	for ((j=0; j>=0 ; j++))
+	do
+		[ -z "$socketcount" ] && socketcount=0
+		datadump=$("$NICPUdatadump_command" "$NICPUdatadump_device$(printf "%0"$NICPUdatadump_device_num"d" "$socketcount")")
+		if [[ ! -z $datadump ]]; then
+			if $Logloop ; then
+				echo "$l Detected CPU socket $socketcount !!"
+				echo "$l New loop => Parsing CPU Core data"
+			fi
+			socketcount=$((socketcount+1))
+			for ((i=0; i>=0 ; i++))
+			do
+				[ -z "$corecount" ] && corecount=0
+				Corecountloop_data=$( echo "$datadump" | grep -A 0 "Core $i"| cut -c17-18)
+				if [[ ! -z $Corecountloop ]]; then
+					declare CPUTEMP$corecount="$Corecountloop_data"
+					echo "CPUTEMP$corecount : $Corecountloop_data"
+					if $Logloop ; then
+						echo "$l Defining CPUTEMP$corecount with value : $Corecountloop_data"
+					fi
+					corecount=$((corecount+1))
+				else
+					if $Logloop ; then
+						echo "$l CPU Core data parsing on CPU Socket $socketcount = stop"
+					fi
+					break
+				fi
+			done
+		else
+			if $Logloop ; then
+				echo "$l Result : $((corecount+1)) Total CPU temperature sources added."
+				echo "$l CPU Data parsing from Non-IPMI source = stop"
+			fi
+			break
+		fi
+	done
+fi
+
+
 #Logtype:
 #0 = Only Alerts
 #1 = Fan speed output + alerts
