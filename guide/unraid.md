@@ -59,8 +59,11 @@ IPMIUSER=root
 #iDrac password (calvin is the default password)
 IPMIPW=calvin
 
-#YOUR IPMI ENCRYPTION KEY 
+#YOUR IPMI ENCRYPTION KEY
 IPMIEK=0000000000000000000000000000000000000000
+
+#Side note: you shouldn't ever store credentials in a script. Period. Here it's an example. 
+#I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
 
 #IPMI IDs
 CPUID0=0Fh
@@ -69,7 +72,7 @@ CPUID2="0#h"
 CPUID3="0#h"
 AMBIENT_ID=04h
 EXHAUST_ID=01h
-	
+
 #Non-IPMI data source for CPU:
 NICPU_toggle=false
 NICPUdatadump_command=(sensors -A)
@@ -79,11 +82,15 @@ NICPUdatadump_core=Core
 NICPUdatadump_cut="-c16-18"
 NICPUdatadump_offset=0
 IPMIDATA_toggle=true
-	
+
 #Logtype:
+#0 = Only Alerts
+#1 = Fan speed output + alerts
+#2 = Simple text + fanspeed output + alerts
+#3 = Table + fanspeed output + alerts
 Logtype=2
 
-#There you basically define your fan curve. 
+#There you basically define your fan curve.
 TEMP_STEP0=30
 FST0=2
 TEMP_STEP1=35
@@ -119,18 +126,15 @@ MAX_MOD=69
 
 EXHTEMP_MAX=65
 
-#CPU fan governor type
+#CPU fan governor type 
 TEMPgov=0
 CPUdelta=15
 
-#Ambient fan mode - Delta mode
 AMBDeltaMode=true
 DeltaR=3
 
 #Log loop debug
 Logloop=false
-
-#Looplog prefix
 l="Loop -"
 
 #Hexadecimal conversion and IPMI command into a function 
@@ -269,7 +273,7 @@ do
         if [[ ! -z "${!inloopspeed}" ]] && [[ ! -z "${!inloopmod}" ]] && [[ ! -z "${!inloopstep}" ]]; then
                 if $Logloop ; then
                         echo "$l Ambient temperature step n°$i = ${!inloopstep}°C"
-                        echo "$l Ambient modifier for CPU temp step n°$i = +${!inloopmod}°C"
+                        echo "$l Ambient modifier for CPU temp step n°$i = ${!inloopmod}°C"
                         echo "$l Ambient NO CPU fan speed step n°$i = ${!inloopspeed}%"
                 fi
                 if ! [[ "${!inloopstep}" =~ $ren ]]; then
@@ -306,7 +310,7 @@ do
                 AMB_STEP_COUNT=$i
                 if $Logloop ; then
                         echo "$l Ambient temperature step count = $i"
-                        echo "$l Ambient max temperature to max mod = $AMBTEMP_MAX"
+                        echo "$l Ambient max temperature to max mod = $AMBTEMP_MAX°C"
                         echo "$l CPU Ambiant Steps counting = stop"
                 fi
                 break
@@ -330,8 +334,9 @@ else
 		setfanspeed XX XX auto 1
 	fi
 fi
-#Parsing CPU Temp data
+#Parsing CPU Temp data into values to be later checked in count, continuity and value validity.
 if $NICPU_toggle ; then
+	echo "Non-IPMI data source. An error can be thrown without incidence."
 	if $Logloop ; then
 		echo "$l New loop => Pulling data dynamically from Non-IPMI source"
 	fi
@@ -452,15 +457,15 @@ if [ "$CPUcount" -gt 1 ]; then
             fi
         done
     if $Logloop ; then
-        echo "$l Result = $CPUh"
-        echo "$l Result = $CPUl"
+        echo "$l Lowest = $CPUl°C"
+        echo "$l Highest = $CPUh°C"
         echo "$l CPU Find highest = stop"
     fi
 fi
 if [ $TEMPgov -eq 1 ] || [ $((CPUh-CPUl)) -gt $CPUdelta ]; then
         echo "!! CPU DELTA Exceeded !!"
-        echo "Lowest : $CPUl"
-        echo "Highest: $CPUh"
+        echo "Lowest : $CPUl°C"
+        echo "Highest: $CPUh°C"
         echo "Delta Max: $CPUdelta °C"
         echo "Switching CPU profile..."
         CPUdeltatest=1
