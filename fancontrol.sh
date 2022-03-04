@@ -344,7 +344,7 @@ if $NICPU_toggle ; then
 			for ((i=0; i>=0 ; i++))
 			do
 				[ -z "$corecount" ] && corecount=0
-				Corecountloop_data=$( echo "$datadump" | grep -A 0 "Core $i"| cut -c17-18)
+				Corecountloop_data=$( echo "$datadump" | grep -A 0 "Core $i"| cut -c16-18)
 				if [[ ! -z $Corecountloop_data ]]; then
 					declare CPUTEMP$corecount="$((Corecountloop_data+NICPUdatadump_offset))"
 					if $Logloop ; then
