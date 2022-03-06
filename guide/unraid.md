@@ -59,8 +59,11 @@ IPMIUSER=root
 #iDrac password (calvin is the default password)
 IPMIPW=calvin
 
-#YOUR IPMI ENCRYPTION KEY 
+#YOUR IPMI ENCRYPTION KEY
 IPMIEK=0000000000000000000000000000000000000000
+
+#Side note: you shouldn't ever store credentials in a script. Period. Here it's an example. 
+#I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
 
 #IPMI IDs
 CPUID0=0Fh
@@ -70,10 +73,24 @@ CPUID3="0#h"
 AMBIENT_ID=04h
 EXHAUST_ID=01h
 
+#Non-IPMI data source for CPU:
+NICPU_toggle=false
+NICPUdatadump_command=(sensors -A)
+NICPUdatadump_device="coretemp-isa-"
+NICPUdatadump_device_num=4
+NICPUdatadump_core=Core
+NICPUdatadump_cut="-c16-18"
+NICPUdatadump_offset=0
+IPMIDATA_toggle=true
+
 #Logtype:
+#0 = Only Alerts
+#1 = Fan speed output + alerts
+#2 = Simple text + fanspeed output + alerts
+#3 = Table + fanspeed output + alerts
 Logtype=2
 
-#There you basically define your fan curve. 
+#There you basically define your fan curve.
 TEMP_STEP0=30
 FST0=2
 TEMP_STEP1=35
@@ -109,18 +126,15 @@ MAX_MOD=69
 
 EXHTEMP_MAX=65
 
-#CPU fan governor type
+#CPU fan governor type 
 TEMPgov=0
 CPUdelta=15
 
-#Ambient fan mode - Delta mode
 AMBDeltaMode=true
 DeltaR=3
 
 #Log loop debug
 Logloop=false
-
-#Looplog prefix
 l="Loop -"
 
 #Hexadecimal conversion and IPMI command into a function 
@@ -259,7 +273,7 @@ do
         if [[ ! -z "${!inloopspeed}" ]] && [[ ! -z "${!inloopmod}" ]] && [[ ! -z "${!inloopstep}" ]]; then
                 if $Logloop ; then
                         echo "$l Ambient temperature step n°$i = ${!inloopstep}°C"
-                        echo "$l Ambient modifier for CPU temp step n°$i = +${!inloopmod}°C"
+                        echo "$l Ambient modifier for CPU temp step n°$i = ${!inloopmod}°C"
                         echo "$l Ambient NO CPU fan speed step n°$i = ${!inloopspeed}%"
                 fi
                 if ! [[ "${!inloopstep}" =~ $ren ]]; then
@@ -296,27 +310,78 @@ do
                 AMB_STEP_COUNT=$i
                 if $Logloop ; then
                         echo "$l Ambient temperature step count = $i"
-                        echo "$l Ambient max temperature to max mod = $AMBTEMP_MAX"
+                        echo "$l Ambient max temperature to max mod = $AMBTEMP_MAX°C"
                         echo "$l CPU Ambiant Steps counting = stop"
                 fi
                 break
         fi
 done
-#Pulling temperature data
-IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
-DATADUMP=$(echo "$IPMIPULLDATA")
-if [ -z "$DATADUMP" ]; then
-        echo "No data was pulled from IPMI"
-        setfanspeed XX XX auto 1
+#Pulling temperature data from IPMI
+if $IPMIDATA_toggle ; then
+	IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
+	DATADUMP=$(echo "$IPMIPULLDATA")
+	if [ -z "$DATADUMP" ]; then
+		echo "No data was pulled from IPMI"
+		setfanspeed XX XX auto 1
+	else
+		AUTOEM=false
+	fi
 else
-        AUTOEM=false
+	if $NICPU_toggle ; then
+		AUTOEM=false
+	else
+		echo "Both IPMI data and Non-IPMI-CPU data are toggled off"
+		setfanspeed XX XX auto 1
+	fi
 fi
-#You can obviously use an other source than iDrac for your temperature readings, like lm-sensors for example. There it's an iDrac-centric example script.
-CPUTEMP0=$(echo "$DATADUMP" |grep "$CPUID0" |grep degrees |grep -Po '\d{2}' | tail -1)
-CPUTEMP1=$(echo "$DATADUMP" |grep "$CPUID1" |grep degrees |grep -Po '\d{2}' | tail -1)
-CPUTEMP2=$(echo "$DATADUMP" |grep "$CPUID2" |grep degrees |grep -Po '\d{2}' | tail -1)
-CPUTEMP3=$(echo "$DATADUMP" |grep "$CPUID3" |grep degrees |grep -Po '\d{2}' | tail -1)
-
+#Parsing CPU Temp data into values to be later checked in count, continuity and value validity.
+if $NICPU_toggle ; then
+	echo "Non-IPMI data source. An error can be thrown without incidence."
+	if $Logloop ; then
+		echo "$l New loop => Pulling data dynamically from Non-IPMI source"
+	fi
+	for ((j=0; j>=0 ; j++))
+	do
+		[ -z "$socketcount" ] && socketcount=0
+		datadump=$("$NICPUdatadump_command" "$NICPUdatadump_device$(printf "%0"$NICPUdatadump_device_num"d" "$socketcount")")
+		if [[ ! -z $datadump ]]; then
+			if $Logloop ; then
+				echo "$l Detected CPU socket $socketcount !!"
+				echo "$l New loop => Parsing CPU Core data"
+			fi
+			socketcount=$((socketcount+1))
+			for ((i=0; i>=0 ; i++))
+			do
+				[ -z "$corecount" ] && corecount=0
+				Corecountloop_data=$( echo "$datadump" | grep -A 0 "$NICPUdatadump_core $i"| cut "$NICPUdatadump_cut")
+				if [[ ! -z $Corecountloop_data ]]; then
+					declare CPUTEMP$corecount="$((Corecountloop_data+NICPUdatadump_offset))"
+					if $Logloop ; then
+						echo "$l Defining CPUTEMP$corecount with value : $((CPUTEMP$corecount))"
+					fi
+					corecount=$((corecount+1))
+				else
+					if $Logloop ; then
+						echo "$l CPU Core data parsing on CPU Socket $((socketcount-1)) = stop"
+					fi
+					break
+				fi
+			done
+		else
+			echo "Non-IPMI detection : done."
+			if $Logloop ; then
+				echo "$l Result : $corecount Total CPU temperature sources added."
+				echo "$l CPU Data parsing from Non-IPMI source = stop"
+			fi
+			break
+		fi
+	done
+else
+	CPUTEMP0=$(echo "$DATADUMP" |grep "$CPUID0" |grep degrees |grep -Po '\d{2}' | tail -1)
+	CPUTEMP1=$(echo "$DATADUMP" |grep "$CPUID1" |grep degrees |grep -Po '\d{2}' | tail -1)
+	CPUTEMP2=$(echo "$DATADUMP" |grep "$CPUID2" |grep degrees |grep -Po '\d{2}' | tail -1)
+	CPUTEMP3=$(echo "$DATADUMP" |grep "$CPUID3" |grep degrees |grep -Po '\d{2}' | tail -1)
+fi
 #CPU counting
 if [ -z "$CPUTEMP0" ]; then
         CPUcount=0
@@ -392,15 +457,15 @@ if [ "$CPUcount" -gt 1 ]; then
             fi
         done
     if $Logloop ; then
-        echo "$l Result = $CPUh"
-        echo "$l Result = $CPUl"
+        echo "$l Lowest = $CPUl°C"
+        echo "$l Highest = $CPUh°C"
         echo "$l CPU Find highest = stop"
     fi
 fi
 if [ $TEMPgov -eq 1 ] || [ $((CPUh-CPUl)) -gt $CPUdelta ]; then
         echo "!! CPU DELTA Exceeded !!"
-        echo "Lowest : $CPUl"
-        echo "Highest: $CPUh"
+        echo "Lowest : $CPUl°C"
+        echo "Highest: $CPUh°C"
         echo "Delta Max: $CPUdelta °C"
         echo "Switching CPU profile..."
         CPUdeltatest=1
