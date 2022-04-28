@@ -1,4 +1,27 @@
 #!/bin/bash
+
+#WIP - sum
+#>Present data sources:
+#-IPMI CPU
+#-IPMI Ambient/INLET
+#-IPMI EXHAUST
+#-lm-sensors CPU (doable through SSH with a passwordless secure auth)
+#Todo
+#-Add select drive temps (using smartctl or other)
+
+#>Present modes:
+#-'default' - CPU temps (average/highest governor) + AE modifier + CPU temp delta safeguard for average temp governor
+#-'ambient-default' - DELTA AE, drives fan speed from calculation using the delta of temperature between inlet and exhaust and uses it instead of CPU temps, 
+#  then + AE modifiers as in default mode. Is the default fall back method for missing CPU temp data.
+#-'ambient-legacy' - ignores CPU temps and curves, drives fan speed from AE temps only following ambient specific curve, crude fall back method.
+#Todo
+#- create additional parameters for drive temps, seperated in two famillies (either for front and back, or for HDD and SSD... or maybe 3 famillies/groups), 
+#  with each a 3 step curve of modifiers.
+#- turn the bottom mess into a single dynamic function that each mode can call to do the job to facilitate adding new modes/profiles
+#- ?rewrite to use arrays instead of variables to store fan curves, and possibly from CPU temp data too?
+
+
+
 #the IP address of iDrac
 IPMIHOST=192.168.0.42
 
@@ -687,7 +710,7 @@ if [ $CPUcount -eq 0 ]; then
                                 setfanspeed "$AMBTEMP" $AMBTEMP_MAX auto 0
                         else        
                                 if $Logloop ; then
-                                        echo "$l New loop => Checking fan speeds according to values provided by Ambiant temp steps"
+                                        echo "$l New loop => Checking fan speeds according to values provided by Ambient temp steps"
                                 fi
                                 for ((i=0; i<AMB_STEP_COUNT; i++))
                                 do 
