@@ -19,7 +19,7 @@
 #  with each a 3 step curve of modifiers.
 #- turn the bottom mess into a single dynamic function that each mode can call to do the job to facilitate adding new modes/profiles
 #- ?rewrite to use arrays instead of variables to store fan curves, and possibly from CPU temp data too?
-
+#- add alternative failsafe - 100% instead of auto
 
 
 #the IP address of iDrac
@@ -37,6 +37,10 @@ IPMIEK=0000000000000000000000000000000000000000
 
 #Side note: you shouldn't ever store credentials in a script. Period. Here it's an example. 
 #I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
+
+#Failsafe mode
+#(Possible values being a number between 80 and 100, or "auto")
+E_value="auto"
 
 #IPMI IDs
 #/!\ IMPORTANT - the "0Fh"(CPU0),"0Eh"(CPU1), "04h"(inlet) and "01h"(exhaust) values are the proper ones for MY R720, maybe not for your server. 
@@ -95,6 +99,12 @@ TEMP_STEP4=60
 FST4=12
 TEMP_STEP5=75
 FST5=20
+#CPU fan governor type - keep in mind, with IPMI it's CPUs, not cores.
+#0 = uses average CPU temperature accross CPUs
+#1 = uses highest CPU temperature
+TEMPgov=0
+#Maximum allowed delta in TEMPgov0. If exceeded, switches profile to highest value.
+CPUdelta=15
 
 #These values are used as steps for the intake temps.
 #If Ambient temp is within range of $AMBTEMP_STEP#, it inflates the CPUs' temp average by AMBTEMP_STEP#_MOD when checked against TEMP_STEP#s.
@@ -123,13 +133,6 @@ MAX_MOD=69
 #If your exhaust temp is reaching 65°C, you've been cooking your server. It needs the woosh.
 EXHTEMP_MAX=65
 
-#CPU fan governor type - keep in mind, with IPMI it's CPUs, not cores.
-#0 = uses average CPU temperature accross CPUs
-#1 = uses highest CPU temperature
-TEMPgov=0
-#Maximum allowed delta in TEMPgov0. If exceeded, switches profile to highest value.
-CPUdelta=15
-
 #Ambient fan mode - Delta mode
 # => Fall back method when no CPU readings are available.
 #Delta mode uses the temperature difference (delta) between intake (ambient) and exhaust to control fan-speed.
@@ -156,6 +159,8 @@ l="Loop -"
 # "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x00" stops the server from adjusting fanspeed by itself, no matter the temp
 # "ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff 0x"hex value 00-64" lets you define fan speed
 
+#Extra Curves and data sources
+
 #Hexadecimal conversion and IPMI command into a function 
 ipmifanctl=(ipmitool -I lanplus -H "$IPMIHOST" -U "$IPMIUSER" -P "$IPMIPW" -y "$IPMIEK" raw 0x30 0x30)
 function setfanspeed () { 
@@ -171,7 +176,11 @@ function setfanspeed () {
                 exit $4
         else
                 HEX_value=$(printf '%#04x' "$FS")
-                [ "$Logtype" != 0 ] && echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+                if [ "$4" -eq 1 ]; then
+                    echo "> ERROR : Keeping fans on high profile ($3 %) as safety measure"
+                elif [ "$Logtype" != 0 ]; then
+                    echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+                fi
                 "${ipmifanctl[@]}" 0x01 0x00
                 "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
                 exit $4
@@ -236,6 +245,15 @@ if [[ $MAX_MOD =~ $ren ]]; then
 else
         echo "MAX_MOD parameter invalid, not a number!"
         setfanspeed XX XX auto 1
+fi
+if [[ "$E_value" =~ $ren ]]; then
+        if [ "$E_value" -lt 80 ]; then
+                echo "E_value parameter invalid, can't be negative or lower than 80"
+                E_value="auto"
+        fi
+elif [ "$E_value" != "auto" ]; then
+        echo "E_value parameter invalid, not a number!"
+        E_value="auto"
 fi
 #Counting CPU Fan speed steps and setting max value
 if $Logloop ; then
