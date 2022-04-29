@@ -19,7 +19,7 @@
 #  with each a 3 step curve of modifiers.
 #- turn the bottom mess into a single dynamic function that each mode can call to do the job to facilitate adding new modes/profiles
 #- ?rewrite to use arrays instead of variables to store fan curves, and possibly from CPU temp data too?
-
+#- add alternative failsafe - 100% instead of auto
 
 
 #the IP address of iDrac
