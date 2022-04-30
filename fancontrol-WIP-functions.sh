@@ -238,14 +238,17 @@ echo "nothing yet"
 #6 curve id
 #7 tempcurvelabel "CPU temp steps"
 function tempcomp () { 
-    if [ $3 == "gt" ]; then
-        [[ "${!2}" -gt "${!4}" ]] && crittemp=true || crittemp=false
-    elif [[ $3 == "ge" ]]; then
-        [[ "${!2}" -ge "${!4}" ]] && crittemp=true || crittemp=false
+    if [[ "$3" == "gt" ]] ; then
+        [[ "${!2}" -gt "$4" ]] && crittemp=true || crittemp=false
+    elif [[ "$3" == "ge" ]]; then
+        [[ "${!2}" -ge "$4" ]] && crittemp=true || crittemp=false
+    elif [[ "$3" != "ge" ]] && [[ "$3" != "gt" ]] ; then
+        echo "!! $1 : Invalid critical parameter!!"
+        setfanspeed XX XX $E_value 1
     fi
     if $crittemp; then
-            echo "!! $1 : Temperature Critical trigger!!"
-            setfanspeed "${!2}" "${!4}" "$E_value" 0
+        echo "!! $1 : Temperature Critical trigger!!"
+        setfanspeed "${!2}" "${!4}" "$E_value" 0
     else
         if $Logloop ; then
             echo "$l New loop => From $1 using $7"
@@ -312,6 +315,6 @@ for ((k=0; k>=0 ; k++))
         fi
     done
 
-vTEMP=45
+vTEMP=49
 id=0
 tempcomp "CPU MOD" $vTEMP gt "C${id}_MAX" "" "$id" "CPU temp steps"
