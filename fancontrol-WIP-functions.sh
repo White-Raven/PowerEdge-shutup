@@ -313,5 +313,5 @@ for ((k=0; k>=0 ; k++))
     done
 
 vTEMP=45
-MAXTEMP=75
-tempcomp "CPU MOD" $vTEMP gt $MAXTEMP "" 0 "CPU temp steps"
+id=0
+tempcomp "CPU MOD" $vTEMP gt "C${id}_MAX" "" "$id" "CPU temp steps"
