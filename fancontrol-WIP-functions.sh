@@ -46,18 +46,22 @@ C0_OS5=
 C1_offset=0
 C1_os_toggle=false
 
+#step 0
 C1_TEMP0=20
 C1_FS0=8
 C1_MOD0=0
 C1_OS0=
+#step 1
 C1_TEMP1=21
 C1_FS1=15
 C1_MOD1=10
 C1_OS1=
+#step 2
 C1_TEMP2=24
 C1_FS2=20
 C1_MOD2=15
 C1_OS2=
+#step 3
 C1_TEMP3=26
 C1_FS3=30
 C1_MOD3=20
@@ -82,12 +86,13 @@ Temperature_Offset=0
 
 #--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
 if [[ $Curve_Toggle == "true" ]]; then                     #
-#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0    
+#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0 
+    #step 0   
     declare C${Curve_ID}_TEMP0=40
     declare C${Curve_ID}_FS0=4
     declare C${Curve_ID}_MOD0=0
     declare C${Curve_ID}_OS0=0
-
+    #step 1
     declare C${Curve_ID}_TEMP1=60
     declare C${Curve_ID}_FS1=15
     declare C${Curve_ID}_MOD1=10
@@ -175,103 +180,103 @@ function arr_count() {
 
 #>valuescope "#1 name" "#2 low" "#3 high" "#4 value"
 function valuescope () {
-if [[ ! -z $4 ]]; then
-    if [[ $4 =~ $ren ]]; then
-        if [[ $4 -lt $2 ]] || [[ $4 -gt $3 ]]; then
-            echo "Butterfinger failsafe: $1 is outside of scope!"
+    if [[ ! -z $4 ]]; then
+        if [[ $4 =~ $ren ]]; then
+            if [[ $4 -lt $2 ]] || [[ $4 -gt $3 ]]; then
+                echo "Butterfinger failsafe: $1 is outside of scope!"
+                setfanspeed XX XX $E_value 1
+            fi
+        else
+            echo "Butterfinger failsafe: $1 isn't a number!"
             setfanspeed XX XX $E_value 1
         fi
     else
-        echo "Butterfinger failsafe: $1 isn't a number!"
+        echo "Butterfinger failsafe: $1 value missing!"
         setfanspeed XX XX $E_value 1
     fi
-else
-    echo "Butterfinger failsafe: $1 value missing!"
-    setfanspeed XX XX $E_value 1
-fi
 }
 #>arraybuild curve "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value" 
 #   "#4 fanspeed array toggle" "#5 fanspeed array name" "#6 fanspeed array source variable name (minus step number)"
 #   "#7 modifier array toggle" "#8 modifier array name" "#9 modifier array source variable name (minus step number)"
 #   "#10 fanspeed offset toggle" "#11 fanspeed offset name" "#12 fanspeed offset source variable name (minus step number)" "#13 maxtemp name (ex = )"
 function arraybuildcurve () {
-arr $1
-if ${!4}; then
-    arr $5
-fi
-if ${!7} ; then
-    arr $8
-fi
-if ${!10}; then
-    arr ${11}
-fi
-for ((g=0; g>=0; g++))
-do
-    inloopstep="$2$g"
-    inloopspeed="$6$g"
-    inloopmodifier="$9$g"
-    inloopspoffset="${12}$g"
-    if [[ ! -z "${!inloopstep}" ]]; then
-        if ! [[ "${!inloopstep}" =~ $ren ]]; then
-                echo "Butterfinger failsafe: $2$g isn't a number!"
-                setfanspeed XX XX $E_value 1
+    arr $1
+    if ${!4}; then
+        arr $5
+    fi
+    if ${!7} ; then
+        arr $8
+    fi
+    if ${!10}; then
+        arr ${11}
+    fi
+    for ((g=0; g>=0; g++))
+    do
+        inloopstep="$2$g"
+        inloopspeed="$6$g"
+        inloopmodifier="$9$g"
+        inloopspoffset="${12}$g"
+        if [[ ! -z "${!inloopstep}" ]]; then
+            if ! [[ "${!inloopstep}" =~ $ren ]]; then
+                    echo "Butterfinger failsafe: $2$g isn't a number!"
+                    setfanspeed XX XX $E_value 1
+            else
+                arr_insert $1 "${!inloopstep}"
+                if ${!4}; then
+                    valuescope "$inloopspeed" 0 100 "${!inloopspeed}"
+                    arr_insert $5 "${!inloopspeed}"
+                fi
+                if ${!7}; then
+                    valuescope "$inloopmodifier" 0 100 "${!inloopmodifier}"
+                    arr_insert $8 "${!inloopmodifier}"
+                fi
+                if ${!10}; then
+                    valuescope "$inloopspoffset" 0 100 "${!inloopspoffset}"
+                    arr_insert ${11} "${!inloopspoffset}"
+                fi
+            fi
         else
-            arr_insert $1 "${!inloopstep}"
+            if [ $g -le 0 ]; then
+                echo "Butterfinger failsafe: $2 Curve active but no stepping present!!"
+                setfanspeed XX XX $E_value 1
+            fi
+            temparraycount=$(arr_count "$1")
+            if [[ $temparraycount != $g ]]; then
+            echo "Butterfinger failsafe: $1 array count isn't equal to loop count!!"
+            setfanspeed XX XX $E_value 1
+            fi
             if ${!4}; then
-                valuescope "$inloopspeed" 0 100 "${!inloopspeed}"
-                arr_insert $5 "${!inloopspeed}"
+                if [[ $temparraycount != $(arr_count "$5") ]]; then
+                echo "Butterfinger failsafe: $5 array count isn't equal to $1 array count!!"
+                setfanspeed XX XX $E_value 1
+                fi
             fi
             if ${!7}; then
-                valuescope "$inloopmodifier" 0 100 "${!inloopmodifier}"
-                arr_insert $8 "${!inloopmodifier}"
+                if [[ $temparraycount != $(arr_count "$8") ]]; then
+                echo "Butterfinger failsafe: $8 array count isn't equal to $1 array count!!"
+                setfanspeed XX XX $E_value 1
+                fi
             fi
             if ${!10}; then
-                valuescope "$inloopspoffset" 0 100 "${!inloopspoffset}"
-                arr_insert ${11} "${!inloopspoffset}"
+                if [[ $temparraycount != $(arr_count "${11}") ]]; then
+                echo "Butterfinger failsafe: ${11} array count isn't equal to $1 array count!!"
+                setfanspeed XX XX $E_value 1
+                fi
             fi
-        fi
-    else
-        if [ $g -le 0 ]; then
-            echo "Butterfinger failsafe: $2 Curve active but no stepping present!!"
-            setfanspeed XX XX $E_value 1
-        fi
-        temparraycount=$(arr_count "$1")
-        if [[ $temparraycount != $g ]]; then
-        echo "Butterfinger failsafe: $1 array count isn't equal to loop count!!"
-        setfanspeed XX XX $E_value 1
-        fi
-        if ${!4}; then
-            if [[ $temparraycount != $(arr_count "$5") ]]; then
-            echo "Butterfinger failsafe: $5 array count isn't equal to $1 array count!!"
-            setfanspeed XX XX $E_value 1
+            inloopmaxstep="$2$((g-1))"
+            declare ${13}="${!inloopmaxstep}"
+            if $Logloop ; then
+                    echo "$l $2 count = $g"
+                    echo "$l ${13} = ${!13}°C"
+                    echo "$l $1 array building = stop"
+                    echo "inloopstep $(arr_get $1)"
+                    ${!4} && echo "inloopspeed $(arr_get $5)"
+                    ${!7} && echo "inloopmodifier $(arr_get $8)"
+                    ${!10} && echo "inloopspoffset $(arr_get ${11})"
             fi
+            break
         fi
-        if ${!7}; then
-            if [[ $temparraycount != $(arr_count "$8") ]]; then
-            echo "Butterfinger failsafe: $8 array count isn't equal to $1 array count!!"
-            setfanspeed XX XX $E_value 1
-            fi
-        fi
-        if ${!10}; then
-            if [[ $temparraycount != $(arr_count "${11}") ]]; then
-            echo "Butterfinger failsafe: ${11} array count isn't equal to $1 array count!!"
-            setfanspeed XX XX $E_value 1
-            fi
-        fi
-        inloopmaxstep="$2$((g-1))"
-        declare ${13}="${!inloopmaxstep}"
-        if $Logloop ; then
-                echo "$l $2 count = $g"
-                echo "$l ${13} = ${!13}°C"
-                echo "$l $1 array building = stop"
-                echo "inloopstep $(arr_get $1)"
-                ${!4} && echo "inloopspeed $(arr_get $5)"
-                ${!7} && echo "inloopmodifier $(arr_get $8)"
-                ${!10} && echo "inloopspoffset $(arr_get ${11})"
-        fi
-        break
-    fi
-done
+    done
 }
 
 #>arraybuilddata "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value"
