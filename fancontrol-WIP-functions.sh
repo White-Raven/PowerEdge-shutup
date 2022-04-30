@@ -5,45 +5,117 @@ function setfanspeed () {
 Logloop=true
 E_value="auto"
 # CPU curve using new array population function
-C0_toggle=true
+# DO NOT try to deactivate this curve or replace its ID, it will break the default profiles and failsafes.
 C0_offset=0
-C0_fs_toggle=true
 C0_mod_toggle=false
 C0_os_toggle=false
-
+#step 0
 C0_TEMP0=30
 C0_FS0=2
+C0_MOD0=
+C0_OS0=
+#step 1
 C0_TEMP1=35
 C0_FS1=6
+C0_MOD1=
+C0_OS1=
+#step 2
 C0_TEMP2=40
 C0_FS2=8
+C0_MOD2=
+C0_OS2=
+#step 3
 C0_TEMP3=50
 C0_FS3=10
+C0_MOD3=
+C0_OS3=
+#step 4
 C0_TEMP4=60
 C0_FS4=12
+C0_MOD4=
+C0_OS4=
+#step 5
 C0_TEMP5=75
 C0_FS5=20
+C0_MOD5=
+C0_OS5=
 
 # Ambient curve using new array population function
-C1_toggle=true
+# DO NOT try to deactivate this curve or replace its ID, it will break the default profiles and failsafes.
+
 C1_offset=0
-C1_fs_toggle=true
-C1_mod_toggle=true
 C1_os_toggle=false
 
 C1_TEMP0=20
 C1_FS0=8
 C1_MOD0=0
+C1_OS0=
 C1_TEMP1=21
 C1_FS1=15
 C1_MOD1=10
+C1_OS1=
 C1_TEMP2=24
 C1_FS2=20
 C1_MOD2=15
+C1_OS2=
 C1_TEMP3=26
 C1_FS3=30
 C1_MOD3=20
+C1_OS3=
 
+
+#EXTRA CURVE CONFIG -- For each new curve, copy the entire block    v   v   v   v   v   v   v   v   v   v
+Curve_Toggle=false
+#Define the extra curve's ID. CPU curve is hardcoded ID 0 and Ambient curve is hardcoded ID 1.
+#Must be continuous, 2 to 9.
+Curve_ID=2
+#>Curve effects
+#The curve contains stepping to set fan speed
+Curve_FanSpeed_Toggle=false
+#The curve contains stepping to apply a modifier to an other curve's readings
+Curve_Modifier_Toggle=false
+#The curve contains stepping to apply a fan speed offset to an other curve's result
+Curve_Offset_Toggle=false
+
+Temperature_Offset=0
+
+
+#--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
+if [[ $Curve_Toggle == "true" ]]; then                     #
+#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0    
+    declare C${Curve_ID}_TEMP0=40
+    declare C${Curve_ID}_FS0=4
+    declare C${Curve_ID}_MOD0=0
+    declare C${Curve_ID}_OS0=0
+
+    declare C${Curve_ID}_TEMP1=60
+    declare C${Curve_ID}_FS1=15
+    declare C${Curve_ID}_MOD1=10
+    declare C${Curve_ID}_OS1=5
+
+#--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
+    declare C${Curve_ID}_toggle=$Curve_Toggle              #
+    declare C${Curve_ID}_offset=$Temperature_Offset        #
+    declare C${Curve_ID}_fs_toggle=$Curve_FanSpeed_Toggle  #
+    declare C${Curve_ID}_mod_toggle=$Curve_Modifier_Toggle #
+    declare C${Curve_ID}_os_toggle=$Curve_Offset_Toggle    #
+    Curve_Toggle=false
+    Curve_FanSpeed_Toggle=
+    Curve_Modifier_Toggle=
+    Curve_Offset_Toggle=
+    Temperature_Offset=
+fi
+#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0
+#EXTRA CURVE CONFIG -- For each new curve, copy the entire block    ^   ^   ^   ^   ^   ^   ^   ^   ^   ^
+
+
+
+
+C0_toggle=true
+C0_fs_toggle=true
+C1_toggle=true
+C1_fs_toggle=true
+C1_mod_toggle=true
 # Dynamically create an array by name
 function arr() {
     [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable" 1>&2 ; return 1 ; }
@@ -101,11 +173,7 @@ function arr_count() {
     echo ${#r[@]}
 }
 
-#>valuescope
-#1 name
-#2 low
-#3 high
-#4 value
+#>valuescope "#1 name" "#2 low" "#3 high" "#4 value"
 function valuescope () {
 if [[ ! -z $4 ]]; then
     if [[ $4 =~ $ren ]]; then
@@ -122,20 +190,10 @@ else
     setfanspeed XX XX $E_value 1
 fi
 }
-#>arraybuild curve
-#1 temp array name
-#2 temp array source variable name (minus step number)
-#3 temp array offset value
-#4 fanspeed array toggle
-#5 fanspeed array name
-#6 fanspeed array source variable name (minus step number)
-#7 modifier array toggle
-#8 modifier array name
-#9 modifier array source variable name (minus step number)
-#10 fanspeed offset toggle
-#11 fanspeed offset name
-#12 fanspeed offset source variable name (minus step number)
-#13 maxtemp name (ex = )
+#>arraybuild curve "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value" 
+#   "#4 fanspeed array toggle" "#5 fanspeed array name" "#6 fanspeed array source variable name (minus step number)"
+#   "#7 modifier array toggle" "#8 modifier array name" "#9 modifier array source variable name (minus step number)"
+#   "#10 fanspeed offset toggle" "#11 fanspeed offset name" "#12 fanspeed offset source variable name (minus step number)" "#13 maxtemp name (ex = )"
 function arraybuildcurve () {
 arr $1
 if ${!4}; then
@@ -216,10 +274,7 @@ do
 done
 }
 
-#>arraybuild data
-#temp array name
-#temp array source variable name (minus step number)
-#temp array offset value
+#>arraybuilddata "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value"
 function arraybuilddata () {
 echo "nothing yet"
 }
@@ -229,14 +284,7 @@ echo "nothing yet"
 }
 
 
-#>tempcomp
-#1 origin CPU MOD
-#2 value $vTEMP
-#3 operator ge/gt
-#4 valuemax $MAXTEMP
-#5 originlabel
-#6 curve id
-#7 tempcurvelabel "CPU temp steps"
+#>tempcomp "#1 origin "CPU MOD"" "#2 value $vTEMP" "#3 operator ge/gt" "#4 valuemax $MAXTEMP" "#5 originlabel" "#6 curve id" "#7 tempcurvelabel "CPU temp steps""
 function tempcomp () { 
     if [[ "$3" == "gt" ]] ; then
         [[ "${!2}" -gt "$4" ]] && crittemp=true || crittemp=false
@@ -269,11 +317,11 @@ function tempcomp () {
                 fi
                 if "${!curve_mod_toggle}"; then
                     declare "C${6}_mod_op"=$(arr_at "Curve_mod_$6" "$t")
-                    [[ $Logloop ]] && echo "$l Defining variable C${6}_mod_op with temp modifier $(arr_at "Curve_fs_$6" "$t")" 
+                    [[ $Logloop ]] && echo "$l Defining variable C${6}_mod_op with temp modifier $(arr_at "Curve_mod_$6" "$t")" 
                 fi
                 if "${!curve_os_toggle}"; then
                     declare "C${6}_os_op"=$(arr_at "Curve_os_$6" "$t")
-                    [[ $Logloop ]] && echo "$l Defining variable C${6}_os_op with speed offset $(arr_at "Curve_fs_$6" "$t") %"
+                    [[ $Logloop ]] && echo "$l Defining variable C${6}_os_op with speed offset $(arr_at "Curve_os_$6" "$t") %"
                 fi
                 [[ $Logloop ]] && echo "$l Origin $1 using $7 - Stop Loop." 
                 break
