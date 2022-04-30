@@ -3,6 +3,7 @@ function setfanspeed () {
     exit 0
 }
 Logloop=true
+E_value="auto"
 # CPU curve using new array population function
 C0_toggle=true
 C0_offset=0
@@ -229,47 +230,56 @@ echo "nothing yet"
 
 
 #>tempcomp
-#1 origin CPU MODE
+#1 origin CPU MOD
 #2 value $vTEMP
 #3 operator ge/gt
 #4 valuemax $MAXTEMP
 #5 originlabel
-#6 tempcurve prefix
-#7 result curve prefix
-#8 tempcurvelabel "CPU temp steps"
-#9 result variable name
+#6 curve id
+#7 tempcurvelabel "CPU temp steps"
 function tempcomp () { 
     if [ $3 == "gt" ]; then
-        [[ $2 -gt $4 ]] && crittemp=true || crittemp=false
+        [[ "${!2}" -gt "${!4}" ]] && crittemp=true || crittemp=false
     elif [[ $3 == "ge" ]]; then
-        [[ $2 -ge $4 ]] && crittemp=true || crittemp=false
+        [[ "${!2}" -ge "${!4}" ]] && crittemp=true || crittemp=false
     fi
     if $crittemp; then
-            echo "!! $5 : Temperature Critical trigger!!"
-            setfanspeed "$2" $4 auto 0
+            echo "!! $1 : Temperature Critical trigger!!"
+            setfanspeed "${!2}" "${!4}" "$E_value" 0
     else
+        if $Logloop ; then
+            echo "$l New loop => From $1 using $7"
+        fi
+        for ((t=0; t<$(arr_count "Curve_ts_${6}"); t++))
+        do
             if $Logloop ; then
-                    echo "$l New loop => From $1 using $8"
+                echo "$l Test $2 =< Curve_ts_$6[$t]($(arr_at "Curve_ts_${6}" "$t"))"
             fi
-            for ((i=0; i<TEMP_STEPloop; i++))
-            do
-                    TEMP_STEPloop="$6$i"
-                    
-                    if $Logloop ; then
-                            echo "$l Test $2 =< $6$i(${!TEMP_STEPloop})"
-                    fi
-                    if [ $2 -le "${!TEMP_STEPloop}" ]; then
-                            if $Logloop ; then
-                                    echo "$l Result $2 is =< $6$i(${!TEMP_STEPloop})"
-                                    echo "$l Defining value $9 with value {!Outputvalue}%"
-                                    echo "$l Origin $1 using $8 - Stop Loop."
-                            fi
-                            Outputvalue="$7$i"
-                            Outputvalue="${!Outputvalue}"
-                            setfanspeed $vTEMP "${!TEMP_STEPloop}" "$Outputvalue" 0
-                            break
-                    fi
-            done
+            if [ $2 -le "$(arr_at "Curve_ts_${6}" "$t")" ]; then
+                [[ $Logloop ]] && echo "$l Result $2 is =< Curve_ts_$6[$t]($(arr_at "Curve_ts_${6}" "$t"))"
+                curve_fs_toggle="C${6}_fs_toggle"
+                curve_mod_toggle="C${6}_mod_toggle"
+                curve_os_toggle="C${6}_os_toggle"
+                if "${!curve_fs_toggle}"; then
+                    declare "C${6}_fs_op"=$(arr_at "Curve_fs_$6" "$t")
+                    [[ $Logloop ]] && echo "$l Defining variable C${6}_fs_op with fanspeed $(arr_at "Curve_fs_$6" "$t") %"
+                fi
+                if "${!curve_mod_toggle}"; then
+                    declare "C${6}_mod_op"=$(arr_at "Curve_mod_$6" "$t")
+                    [[ $Logloop ]] && echo "$l Defining variable C${6}_mod_op with temp modifier $(arr_at "Curve_fs_$6" "$t")" 
+                fi
+                if "${!curve_os_toggle}"; then
+                    declare "C${6}_os_op"=$(arr_at "Curve_os_$6" "$t")
+                    [[ $Logloop ]] && echo "$l Defining variable C${6}_os_op with speed offset $(arr_at "Curve_fs_$6" "$t") %"
+                fi
+                [[ $Logloop ]] && echo "$l Origin $1 using $7 - Stop Loop." 
+                break
+            else
+                if $Logloop ; then
+                    echo "$l Test failed -> next iteration;"
+                fi
+            fi
+        done
     fi
 }
 
@@ -301,3 +311,7 @@ for ((k=0; k>=0 ; k++))
             break
         fi
     done
+
+vTEMP=45
+MAXTEMP=75
+tempcomp "CPU MOD" $vTEMP gt $MAXTEMP "" 0 "CPU temp steps"
