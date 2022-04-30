@@ -3,7 +3,7 @@ function setfanspeed () {
     exit 0
 }
 Logloop=true
-
+# CPU curve using new array population function
 C0_toggle=true
 C0_offset=0
 C0_fs_toggle=true
@@ -23,24 +23,25 @@ C0_FS4=12
 C0_TEMP5=75
 C0_FS5=20
 
+# Ambient curve using new array population function
 C1_toggle=true
 C1_offset=0
 C1_fs_toggle=true
-C1_mod_toggle=false
+C1_mod_toggle=true
 C1_os_toggle=false
 
-C1_TEMP0=30
-C1_FS0=2
-C1_TEMP1=35
-C1_FS1=6
-C1_TEMP2=40
-C1_FS2=8
-C1_TEMP3=50
-C1_FS3=10
-C1_TEMP4=60
-C1_FS4=12
-C1_TEMP5=75
-C1_FS5=20
+C1_TEMP0=20
+C1_FS0=8
+C1_MOD0=0
+C1_TEMP1=21
+C1_FS1=15
+C1_MOD1=10
+C1_TEMP2=24
+C1_FS2=20
+C1_MOD2=15
+C1_TEMP3=26
+C1_FS3=30
+C1_MOD3=20
 
 # Dynamically create an array by name
 function arr() {
@@ -157,21 +158,17 @@ do
                 setfanspeed XX XX $E_value 1
         else
             arr_insert $1 "${!inloopstep}"
-            #declare -a $1+=("${!inloopstep}")
             if ${!4}; then
-                valuescope inloopspeed 0 100 "${!inloopspeed}"
+                valuescope "$inloopspeed" 0 100 "${!inloopspeed}"
                 arr_insert $5 "${!inloopspeed}"
-                #declare -a $5+=("${!inloopspeed}")
             fi
             if ${!7}; then
-                valuescope inloopmodifier 20 100 "${!inloopmodifier}"
+                valuescope "$inloopmodifier" 0 100 "${!inloopmodifier}"
                 arr_insert $8 "${!inloopmodifier}"
-                #declare -a $8+=("${!inloopmodifier}")
             fi
             if ${!10}; then
-                valuescope inloopspoffset 0 100 "${!inloopspoffset}"
+                valuescope "$inloopspoffset" 0 100 "${!inloopspoffset}"
                 arr_insert ${11} "${!inloopspoffset}"
-                #declare -a $11+=("${!inloopspoffset}")
             fi
         fi
     else
@@ -237,59 +234,52 @@ echo "nothing yet"
 #3 operator ge/gt
 #4 valuemax $MAXTEMP
 #5 originlabel
-#6 tempcurve
-#7 fancurve
+#6 tempcurve prefix
+#7 result curve prefix
 #8 tempcurvelabel "CPU temp steps"
-#9 fancurvelabel
+#9 result variable name
 function tempcomp () { 
     if [ $3 == "gt" ]; then
         [[ $2 -gt $4 ]] && crittemp=true || crittemp=false
     elif [[ $3 == "ge" ]]; then
         [[ $2 -ge $4 ]] && crittemp=true || crittemp=false
     fi
-        if $crittemp; then
-                echo "!! $5 : Temperature Critical trigger!!"
-                setfanspeed "$2" $4 auto 0
-        else
-                if $Logloop ; then
-                        echo "$l New loop => From $1 using $8"
-                fi
-                for ((i=0; i<TEMP_STEPloop; i++))
-                do
-                        TEMP_STEPloop="$6$i"
-                        FSTloop="$7$i"
-                        if $Logloop ; then
-                                echo "$l Test $2 =< $6$i(${!TEMP_STEPloop})"
-                        fi
-                        if [ $2 -le "${!TEMP_STEPloop}" ]; then
-                                if $Logloop ; then
-                                        echo "$l Result $2 is =< $6$i(${!TEMP_STEPloop})"
-                                        echo "$l Sending command #setfanspeed $vTEMP°C ${!TEMP_STEPloop}°C ${!FSTloop}%"
-                                        echo "$l Origin $1 using $8 - Stop Loop."
-                                fi
-                                setfanspeed $vTEMP "${!TEMP_STEPloop}" "${!FSTloop}" 0
-                                break
-                        fi
-                done
-        fi
+    if $crittemp; then
+            echo "!! $5 : Temperature Critical trigger!!"
+            setfanspeed "$2" $4 auto 0
+    else
+            if $Logloop ; then
+                    echo "$l New loop => From $1 using $8"
+            fi
+            for ((i=0; i<TEMP_STEPloop; i++))
+            do
+                    TEMP_STEPloop="$6$i"
+                    
+                    if $Logloop ; then
+                            echo "$l Test $2 =< $6$i(${!TEMP_STEPloop})"
+                    fi
+                    if [ $2 -le "${!TEMP_STEPloop}" ]; then
+                            if $Logloop ; then
+                                    echo "$l Result $2 is =< $6$i(${!TEMP_STEPloop})"
+                                    echo "$l Defining value $9 with value {!Outputvalue}%"
+                                    echo "$l Origin $1 using $8 - Stop Loop."
+                            fi
+                            Outputvalue="$7$i"
+                            Outputvalue="${!Outputvalue}"
+                            setfanspeed $vTEMP "${!TEMP_STEPloop}" "$Outputvalue" 0
+                            break
+                    fi
+            done
+    fi
 }
 
 for ((k=0; k>=0 ; k++))
     do
         curve_prefix="C${k}_"
         curve_toggle="C${k}_toggle"
-        curve_ts_name="Curve_ts_${k}"
-        curve_ts_vname="C${k}_TEMP"
-        curve_ts_os="C${k}_offset"
         curve_fs_toggle="C${k}_fs_toggle"
-        curve_fs_name="Curve_fs_${k}"
-        curve_fs_vname="C${k}_FS"
         curve_mod_toggle="C${k}_mod_toggle"
-        curve_mod_name="Curve_mod_${k}"
-        curve_mod_vname="C${k}_MOD"
         curve_os_toggle="C${k}_os_toggle"
-        curve_os_name="Curve_os_${k}"
-        curve_os_vname="C${k}_OS"
         echo "${!curve_toggle}"
         echo "${!curve_fs_toggle}"
         echo "${!curve_mod_toggle}"
@@ -297,7 +287,7 @@ for ((k=0; k>=0 ; k++))
         if [[ ! -z "${!curve_toggle}" ]] ; then
             if "${!curve_toggle}"; then
                 if [[ ! -z "${!curve_fs_toggle}" ]] && [[ ! -z "${!curve_mod_toggle}" ]] && [[ ! -z "${!curve_os_toggle}" ]]; then
-                arraybuildcurve "Curve_ts_${k}" "C${k}_TEMP" "C${k}_offset" "C${k}_fs_toggle" "Curve_fs_${k}" "C${k}_FS" "C${k}_mod_toggle" "Curve_mod_${k}" "C${k}_MOD" "C${k}_os_toggle" "Curve_os_${k}" "C${k}_OS"
+                arraybuildcurve "Curve_ts_${k}" "C${k}_TEMP" "C${k}_offset" "C${k}_fs_toggle" "Curve_fs_${k}" "C${k}_FS" "C${k}_mod_toggle" "Curve_mod_${k}" "C${k}_MOD" "C${k}_os_toggle" "Curve_os_${k}" "C${k}_OS" "C${k}_MAX"
                 else
                     echo "Missing Parameters"
                     break
