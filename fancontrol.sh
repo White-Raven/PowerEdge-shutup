@@ -251,6 +251,10 @@ if [[ "$E_value" =~ $ren ]]; then
                 echo "E_value parameter invalid, can't be negative or lower than 80"
                 E_value="auto"
         fi
+        if [ "$E_value" -gt 100 ]; then
+                echo "E_value parameter invalid, can't be greater than 100"
+                E_value="auto"
+        fi
 elif [ "$E_value" != "auto" ]; then
         echo "E_value parameter invalid, not a number!"
         E_value="auto"
