@@ -164,27 +164,30 @@ l="Loop -"
 #Hexadecimal conversion and IPMI command into a function 
 ipmifanctl=(ipmitool -I lanplus -H "$IPMIHOST" -U "$IPMIUSER" -P "$IPMIPW" -y "$IPMIEK" raw 0x30 0x30)
 function setfanspeed () { 
-        TEMP_Check=$1
-        TEMP_STEP=$2
-        FS=$3
-        if [[ $FS == "auto" ]]; then
-                if [ "$Logtype" != 0 ] && [ "$4" -eq 0 ]; then
-                        echo "> $TEMP_Check °C is higher or equal to $TEMP_STEP °C. Switching to automatic fan control"
-                fi
-                [ "$4" -eq 1 ] && echo "> ERROR : Keeping fans on auto as safety measure"
-                "${ipmifanctl[@]}" 0x01 0x01
-                exit $4
-        else
-                HEX_value=$(printf '%#04x' "$FS")
-                if [ "$4" -eq 1 ]; then
-                    echo "> ERROR : Keeping fans on high profile ($3 %) as safety measure"
-                elif [ "$Logtype" != 0 ]; then
-                    echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
-                fi
-                "${ipmifanctl[@]}" 0x01 0x00
-                "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
-                exit $4
-         fi
+    TEMP_Check=$1
+    TEMP_STEP=$2
+    FS=$3
+    if [[ $FS == "auto" ]]; then
+        if [ "$Logtype" != 0 ] && [ "$4" -eq 0 ]; then
+                echo "> $TEMP_Check °C is higher or equal to $TEMP_STEP °C. Switching to automatic fan control"
+        fi
+        [ "$4" -eq 1 ] && echo "> ERROR : Keeping fans on auto as safety measure"
+        "${ipmifanctl[@]}" 0x01 0x01
+        exit $4
+    else
+        if [[ $FS -gt "100" ]]; then
+            FS=100
+        fi
+        HEX_value=$(printf '%#04x' "$FS")
+        if [ "$4" -eq 1 ]; then
+            echo "> ERROR : Keeping fans on high profile ($3 %) as safety measure"
+        elif [ "$Logtype" != 0 ]; then
+            echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+        fi
+        "${ipmifanctl[@]}" 0x01 0x00
+        "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
+        exit $4
+     fi
 }
 #Failsafe = Parameter check
 re='^[0-9]+$'
