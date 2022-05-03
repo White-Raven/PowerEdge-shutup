@@ -1,6 +1,4 @@
 #!/bin/bash
-Logloop=true
-
 
 #Failsafe mode
 #(Possible values being a number between 80 and 100, or "auto")
@@ -159,6 +157,19 @@ fi
 #EXTRA CURVE CONFIG -- For each new curve, copy the entire block    ^   ^   ^   ^   ^   ^   ^   ^   ^   ^
 
 
+#Log loop debug - true or false, logging of loops for debugging script
+Logloop=true
+
+#Looplog prefix
+l="Loop -"
+
+#Log functions - true or false, logging of functions for debugging script
+LogFunc=true
+BoolInt=false
+
+#Looplog prefix
+f="Func -"
+
 function setfanspeed() {
     exit 0
 }
@@ -167,13 +178,13 @@ function setfanspeed() {
 
 # Dynamically create an array by name
 function arr() {
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable" 1>&2 ; return 1 ; }
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr()" 1>&2 ; return 1 ; }
     declare -g -a $1=\(\)   
 }
 
 # Insert incrementing by incrementing index eg. array+=(data)
 function arr_insert() { 
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable" 1>&2 ; return 1 ; }
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_insert()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
     [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
     declare -n r=$1
@@ -182,7 +193,7 @@ function arr_insert() {
 
 # Update an index by position
 function arr_set() {
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable" 1>&2 ; return 1 ; }
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_set()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
     [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
     declare -n r=$1 
@@ -191,7 +202,7 @@ function arr_set() {
 
 # Get the array content ${array[@]}
 function arr_get() {
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable" 1>&2 ; return 1 ; }
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_get()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
     [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
     declare -n r=$1 
@@ -200,7 +211,7 @@ function arr_get() {
 
 # Get the value stored at a specific index eg. ${array[0]}  
 function arr_at() {
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable" 1>&2 ; return 1 ; }
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_at()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
     [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
     [[ ! "$2" =~ ^(0|[-]?[1-9]+[0-9]*)$ ]] && { echo "Array index must be a number" 1>&2 ; return 1 ; }
@@ -215,7 +226,7 @@ function arr_at() {
 
 # Get the value stored at a specific index eg. ${array[0]}  
 function arr_count() {
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable " 1>&2 ; return 1 ; }
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_count()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
     [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
     declare -n r=$1
@@ -224,6 +235,9 @@ function arr_count() {
 
 #>int_check "#1 name" "#2type(scope/max/min)" "#3 value" "#4 custom error" "#5 low/max/min" "#6 high"  
 function int_check() {
+    if $LogFunc && $BoolInt; then
+        echo "$f Function start  > int_check(${1} ${2} ${3} ${4} ${5} ${6})"
+    fi
     int_check_ERROR=false
     if [[ ! -z $3 ]]; then
         if [[ $3 =~ $ren ]]; then
@@ -263,6 +277,10 @@ function int_check() {
     fi
 }
 function bool_check() {
+    if $LogFunc && $BoolInt; then
+        echo "$f Function start  > bool_check(${1} ${2})"
+    fi
+    unset $bool_check
     if [[ $2 == "true" ]] || [[ $2 == "false" ]]; then
         bool_check=true
     else
@@ -273,11 +291,14 @@ function bool_check() {
         setfanspeed XX XX "$E_value" 1
     fi
 }
-#>arraybuild curve "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value" 
-#   "#4 fanspeed array toggle" "#5 fanspeed array name" "#6 fanspeed array source variable name (minus step number)"
-#   "#7 modifier array toggle" "#8 modifier array name" "#9 modifier array source variable name (minus step number)"
-#   "#10 fanspeed offset toggle" "#11 fanspeed offset name" "#12 fanspeed offset source variable name (minus step number)" "#13 maxtemp name (ex = )"
+#///>arraybuild curve "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value" 
+#///   "#4 fanspeed array toggle" "#5 fanspeed array name" "#6 fanspeed array source variable name (minus step number)"
+#///   "#7 modifier array toggle" "#8 modifier array name" "#9 modifier array source variable name (minus step number)"
+#///   "#10 fanspeed offset toggle" "#11 fanspeed offset name" "#12 fanspeed offset source variable name (minus step number)" "#13 maxtemp name (ex = )"
+
+#>arraybuild "#1 Curve ID"
 function arraybuildcurve() {
+    $LogFunc && echo "$f Function start  > §arraybuildcurve(${1})"
     arr "Curve_ts_${1}"
     if $(arr_at "C${1}_settings" "0") ; then 
         arr "Curve_fs_${1}"
@@ -309,13 +330,20 @@ function arraybuildcurve() {
                 int_check scope "$inloopspoffset" scope "${!inloopspoffset}" false 0 100 
                 arr_insert "Curve_os_${1}" "${!inloopspoffset}"
             fi
+            if $LogFunc || $Logloop ; then
+                    echo "$f$l Step n°$((g+1))"
+                    echo "$f$l $inloopstep = ${!inloopstep}°C"
+                    $(arr_at "C${1}_settings" "0") && echo "$f$l $inloopspeed   = ${!inloopspeed}%"
+                    $(arr_at "C${1}_settings" "1") && echo "$f$l $inloopmodifier  = ${!inloopmodifier}°C"
+                    $(arr_at "C${1}_settings" "2") && echo "$f$l $inloopspoffset   = ${!inloopspoffset}°C"  
+            fi
         else
             if [ $g -le 0 ]; then
-                echo "Butterfinger failsafe: $2 Curve active but no stepping present!!"
+                echo "Butterfinger failsafe: Curve n°${1} active but no stepping present!!"
                 setfanspeed XX XX "$E_value" 1
             fi
             if [[ $(arr_count "Curve_ts_${1}") != $g ]]; then
-            echo "Butterfinger failsafe: $1 array count isn't equal to loop count!!"
+            echo "Butterfinger failsafe: Curve_ts_${1} array count isn't equal to loop count!!"
             setfanspeed XX XX "$E_value" 1
             fi
             if $(arr_at "C${1}_settings" "0"); then
@@ -337,21 +365,23 @@ function arraybuildcurve() {
                 fi
             fi
             arr_set "C${1}_settings" "7" "$(arr_at "Curve_ts_${1}" "$((g-1))")"
-            if $Logloop ; then
-                    echo "$l $(arr_at "C${1}_settings" "6") loop count       = $g"
-                    echo "$l Max step            = $(arr_at "C${1}_settings" "7")°C"
-                    echo "$l Array building      = stop"
-                    echo "$l Curve $1 Steps      = $(arr_get "Curve_ts_${1}")"
-                    $(arr_at "C${1}_settings" "0") && echo "$l Curve $1 Fan Speeds = $(arr_get "Curve_fs_${1}")"
-                    $(arr_at "C${1}_settings" "1") && echo "$l Curve $1 Modifiers  = $(arr_get "Curve_mod_${1}")"
-                    $(arr_at "C${1}_settings" "2") && echo "$l Curve $1 Offsets    = $(arr_get "Curve_os_${1}")"
+            if $LogFunc ; then
+                    echo "$f Loop count $(printf "%-7s" $(arr_at "C${1}_settings" "6"))  = $g"
+                    echo "$f Max step            = $(arr_at "C${1}_settings" "7")°C"
+                    echo "$f Array building      = stop"
+                    echo "$f Curve $1 Steps       = $(arr_get "Curve_ts_${1}")°C"
+                    $(arr_at "C${1}_settings" "0") && echo "$f Curve $1 Fan Speeds  = $(arr_get "Curve_fs_${1}")%"
+                    $(arr_at "C${1}_settings" "1") && echo "$f Curve $1 Modifiers   = $(arr_get "Curve_mod_${1}")°C"
+                    $(arr_at "C${1}_settings" "2") && echo "$f Curve $1 Offsets     = $(arr_get "Curve_os_${1}")°C"
             fi
             break
         fi
     done
+    $LogFunc && echo "$f Function end."
 }
 # arraybuildsettings "#1 curve id"
 function arraybuildsettings() {
+    $LogFunc && echo "$f Function start  > arraybuildsettings(${1})"
     arraybuild_ERROR=false
     fs_toggle="C${1}_fs_toggle"
     mod_toggle="C${1}_mod_toggle"
@@ -417,6 +447,8 @@ function arraybuildsettings() {
         echo "/!\ Error while building Curve$1 's settings /!\ "
         setfanspeed XX XX "$E_value" 1
     fi
+    echo "$(arr_get "C${1}_settings")"
+    $LogFunc && echo "$f Function end."
 }
 
 #>arraybuilddata "#1 temp array name" "#2 temp array source variable name (minus step number)" "#3 temp array offset value"
@@ -424,84 +456,90 @@ function arraybuilddata() {
 echo "nothing yet"
 }
 
-#governor "#1 Origin label" "#2 temp array id" "#4 mode (average(0)/highest(1)/1v2(ae))" "#4 Delta y/n" "#5 Delta value" 
+#///governor "#1 Origin label" "#2 temp array id" "#4 mode (average(0)/highest(1)/1v2(ae))" "#4 Delta y/n" "#5 Delta value" 
+#governor "#1 Curve id"
 function governor() {
-    if [[ $3 == "ae" ]]; then
+    unset $templow
+    unset $temphigh
+    $LogFunc && echo "$f Function start  > governor(${1})"
+    if [[ "$(arr_at "C${1}_settings" "3")" == "ae" ]]; then
         echo "todo"
-    elif [[ $3 == "1" ]] || [[ $3 == "0" ]] ; then
+    elif [[ "$(arr_at "C${1}_settings" "3")" == "1" ]] || [[ "$(arr_at "C${1}_settings" "3")" == "0" ]] ; then
         if $Logloop ; then
                 echo "$l New loop => Finding highest and lowest $1"
         fi
-        for ((h=0; h<$(arr_count "C${2}_readings"); h++)) #General solution to finding the highest number with a shitty shell loop
+        for ((h=0; h<$(arr_count "C${1}_readings"); h++)) #General solution to finding the highest number with a shitty shell loop
             do
-                inlooptemp=$(arr_at "C${2}_readings" "$h")
+                inlooptemp=$(arr_at "C${1}_readings" "$h")
                 if $Logloop ; then
-                        echo "$l Checking for $6$h = ${!inlooptemp}°C"
+                        echo "$l Checking for $(printf "%-7s" "$(arr_at "C${1}_settings" "6")$h")= $inlooptemp°C"
                 fi
                 if [ "$h" -eq 0 ]; then
-                      temphigh=${!inlooptemp}
-                      templow=${!inlooptemp}
+                      temphigh=$inlooptemp
+                      templow=$inlooptemp
                 else
-                    if [ ${!inlooptemp} -gt $temphigh ]; then
+                    if [ $inlooptemp -gt $temphigh ]; then
                         if $Logloop ; then
-                                echo "$l New high! $6$h = ${!inlooptemp}°C"
+                                echo "$l Checking for $(printf "%-7s" "$(arr_at "C${1}_settings" "6")$h")= $inlooptemp°C"
                         fi
-                        temphigh=${!inlooptemp}
+                        temphigh=$inlooptemp
                     fi
-                    if [ ${!inlooptemp} -lt $templow ]; then
+                    if [ $inlooptemp -lt $templow ]; then
                         if $Logloop ; then
-                                echo "$l New low! $6$h = ${!inlooptemp}°C"
+                                echo "$l Checking for $(printf "%-7s" "$(arr_at "C${1}_settings" "6")$h")= $inlooptemp°C"
                         fi
-                        templow=${!inlooptemp}
+                        templow=$inlooptemp
                     fi
                 fi
             done
         if $Logloop ; then
             echo "$l Lowest = $templow°C"
-            echo "$l Highest = $temphigh"
-            echo "$l $6 Find highest = stop"
+            echo "$l Highest = $temphigh°C"
+            echo "$l "$(arr_at "C${1}_settings" "6")" Find highest = stop"
         fi
 
-        if [ $TEMPgov -eq 1 ] || [ $((temphigh-templow)) -gt "$(arr_at "C${2}_settings" "4")" ]; then
-            echo "!! $6 DELTA Exceeded !!"
+        if [ "$(arr_at "C${1}_settings" "3")" -eq 1 ] || [ $((temphigh-templow)) -gt "$(arr_at "C${1}_settings" "4")" ]; then
+            echo "!! $(arr_at "C${1}_settings" "6") DELTA Exceeded !!"
             echo "Lowest : $templow°C"
             echo "Highest: $temphigh°C"
-            echo "Delta Max: $CPUdelta °C"
-            echo "Switching $6 profile..."
-            declare C${2}_delta_E=1
-            declare C${2}_ER=$temphigh
+            echo "Delta Max: "$(arr_at "C${1}_settings" "4")" °C"
+            echo "Switching $(arr_at "C${1}_settings" "6") profile..."
+            declare C${1}_delta_E=1
+            declare C${1}_ER=$temphigh
         fi
     else
         echo "!! $1 : Missing or invalid governor parameter!!"
-        setfanspeed "${!2}" "${!4}" "$E_value" 0
+        setfanspeed "XX" "XX" "$E_value" 0
     fi
+    $LogFunc && echo "$f Function end."
 }
 
 
 #>tempcomp "#1 origin "CPU MOD"" "#2 value $vTEMP" "#3 operator ge/gt" "#4 valuemax $MAXTEMP" "#5 originlabel" "#6 curve id" "#7 tempcurvelabel "CPU temp steps""
-function tempcomp() { 
+function tempcomp() {
+    $LogFunc && echo "$f Function start  > tempcomp(${1})"
     if [[ "$3" == "gt" ]] ; then
-        [[ "${!2}" -gt "$(arr_at "C${6}_settings" "6")" ]] && crittemp=true || crittemp=false
+        [[ "${2}" -gt "$(arr_at "C${6}_settings" "7")" ]] && crittemp=true || crittemp=false
     elif [[ "$3" == "ge" ]]; then
-        [[ "${!2}" -ge "$(arr_at "C${6}_settings" "6")" ]] && crittemp=true || crittemp=false
+        [[ "${2}" -ge "$(arr_at "C${6}_settings" "7")" ]] && crittemp=true || crittemp=false
     elif [[ "$3" != "ge" ]] && [[ "$3" != "gt" ]] ; then
         echo "!! $1 : Invalid critical parameter!!"
         setfanspeed XX XX "$E_value" 1
     fi
     if $crittemp; then
         echo "!! $1 : Temperature Critical trigger!!"
-        setfanspeed "${!2}" "$(arr_at "C${1}_settings" "6")" "$E_value" 0
+        setfanspeed "${2}" "$(arr_at "C${1}_settings" "7")" "$E_value" 0
     else
         if $Logloop ; then
             echo "$l New loop => From $1 using $7"
         fi
-        for ((t=0; t<$(arr_count "Curve_ts_${6}"); t++))
+        for ((t=0; t<$(arr_count "Curve_ts_$6"); t++))
         do
             if $Logloop ; then
-                echo "$l Test $2 =< Curve_ts_$6[$t]($(arr_at "Curve_ts_${6}" "$t"))"
+                echo "$l Test $2 =< Curve_ts_$6[$t]($(arr_at "Curve_ts_$6" "$t"))"
             fi
-            if [ $2 -le "$(arr_at "Curve_ts_${6}" "$t")" ]; then
-                [[ $Logloop ]] && echo "$l Result $2 is =< Curve_ts_$6[$t]($(arr_at "Curve_ts_${6}" "$t"))"
+            if [ $2 -le "$(arr_at "Curve_ts_$6" "$t")" ]; then
+                [[ $Logloop ]] && echo "$l Result $2 is =< Curve_ts_$6[$t]($(arr_at "Curve_ts_$6" "$t"))"
                 curve_fs_toggle="C${6}_fs_toggle"
                 curve_mod_toggle="C${6}_mod_toggle"
                 curve_os_toggle="C${6}_os_toggle"
@@ -517,7 +555,7 @@ function tempcomp() {
                     declare "C${6}_os_op"=$(arr_at "Curve_os_$6" "$t")
                     [[ $Logloop ]] && echo "$l Defining variable C${6}_os_op with speed offset $(arr_at "Curve_os_$6" "$t") %"
                 fi
-                [[ $Logloop ]] && echo "$l Origin $1 using $7 - Stop Loop." 
+                [[ $Logloop ]] && echo "$l Origin $1 using $(arr_at "C${6}_settings" "6") Temp Steps - Stop Loop." 
                 break
             else
                 if $Logloop ; then
@@ -526,6 +564,7 @@ function tempcomp() {
             fi
         done
     fi
+    $LogFunc && echo "$f Function end."
 }
 
 for ((k=0; k>=0 ; k++))
@@ -549,7 +588,15 @@ for ((k=0; k>=0 ; k++))
         fi
     done
 
-
+#commands to test stuff
 tempcomp "CPU MOD" 49 gt "C${id}_MAX" "" "0" "CPU temp steps"
 tempcomp "AMB check" 22 gt "C${id}_MAX" "" "1" "CPU temp steps"
+arr "C0_readings"
+for ((z=0; z<40 ; z++))
+    do
+        rand=$(( $RANDOM % 15 + 1 ))
+        arr_set "C0_readings" "${z}" "$((rand+39))"
+    done
+
+governor "0"
 
