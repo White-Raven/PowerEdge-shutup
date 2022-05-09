@@ -224,16 +224,6 @@ function arr_at() {
     fi
 }
 
-# Get the value stored at a specific index, for assossiative arrays eg. ${array[X]}  
-function aarr_at() {
-    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable aarr_at()" 1>&2 ; return 1 ; }
-    declare -p "$1" > /dev/null 2>&1
-    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
-    [[ ! "$2" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid index variable aarr_at()" 1>&2 ; return 1 ; }
-    declare -n r=$1 
-        echo ${r[$2]}
-}
-
 # Get the array index count eg. ${#array[@]}
 function arr_count() {
     [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_count()" 1>&2 ; return 1 ; }
@@ -241,6 +231,55 @@ function arr_count() {
     [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
     declare -n r=$1
     echo ${#r[@]}
+}
+
+# Dynamically create an assossiative array by name
+function aarr() {
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr()" 1>&2 ; return 1 ; }
+    declare -g -A $1
+}
+
+# Update an assossiative array by label
+function aarr_set() {
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_set()" 1>&2 ; return 1 ; }
+    declare -p "$1" > /dev/null 2>&1
+    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
+    declare -n r=$1 
+    r[$2]=$3
+}
+
+# Get the array content ${array[@]}
+function aarr_get() {
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_get()" 1>&2 ; return 1 ; }
+    declare -p "$1" > /dev/null 2>&1
+    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
+    declare -n r=$1 
+    echo ${r[@]}
+}
+
+# Get the value stored at a specific label, for assossiative arrays eg. ${array[X]}  
+function aarr_at() {
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable aarr_at()" 1>&2 ; return 1 ; }
+    declare -p "$1" > /dev/null 2>&1
+    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
+    [[ ! "$2" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid index variable aarr_at()" 1>&2 ; return 1 ; }
+    declare -n r=$1 
+    echo ${r[$2]}
+}
+
+# Get the value stored at a specific label, for assossiative arrays eg. ${array[X]}  
+function aarr_test() {
+    unset $aarr_test
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable aarr_at()" 1>&2 ; return 1 ; }
+    declare -p "$1" > /dev/null 2>&1
+    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
+    [[ ! "$2" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid index variable aarr_at()" 1>&2 ; return 1 ; }
+    declare -n r=$1 
+    if [ ${r[$2]+_} ]; then 
+        echo true
+    else 
+        echo false
+    fi
 }
 
 #>int_check "#1 name" "#2type(scope/max/min)" "#3 value" "#4 custom error" "#5 low/max/min" "#6 high"  
@@ -618,6 +657,9 @@ for ((z=0; z<40 ; z++))
 
 governor "0"
 
-arr "test"
-arr_set "test" "index" "testvariable"
+aarr "test"
+aarr_set "test" "index" "testvariable"
 echo $(aarr_at "test" "index")
+echo $(aarr_at "test" "notexist")
+aarr_test "test" "index"
+aarr_test "test" "notexist"
