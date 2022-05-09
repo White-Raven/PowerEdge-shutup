@@ -239,7 +239,7 @@ function aarr() {
     declare -g -A $1
 }
 
-# Update an assossiative array by label
+# Update an assossiative array by key
 function aarr_set() {
     [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_set()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
@@ -256,8 +256,16 @@ function aarr_get() {
     declare -n r=$1 
     echo ${r[@]}
 }
+# Get the array content ${array[@]}
+function aarr_getkeys() {
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_get()" 1>&2 ; return 1 ; }
+    declare -p "$1" > /dev/null 2>&1
+    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
+    declare -n r=$1 
+    echo ${!r[@]}
+}
 
-# Get the value stored at a specific label, for assossiative arrays eg. ${array[X]}  
+# Get the value stored at a specific key, for assossiative arrays eg. ${array[X]}  
 function aarr_at() {
     [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable aarr_at()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
@@ -659,7 +667,9 @@ governor "0"
 
 aarr "test"
 aarr_set "test" "index" "testvariable"
+aarr_set "test" "index2" "testvariable2"
 echo $(aarr_at "test" "index")
 echo $(aarr_at "test" "notexist")
 aarr_test "test" "index"
 aarr_test "test" "notexist"
+aarr_get "test"
