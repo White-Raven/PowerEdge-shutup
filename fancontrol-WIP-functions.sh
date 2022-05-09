@@ -224,7 +224,17 @@ function arr_at() {
     fi
 }
 
-# Get the value stored at a specific index eg. ${array[0]}  
+# Get the value stored at a specific index, for assossiative arrays eg. ${array[X]}  
+function aarr_at() {
+    [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable aarr_at()" 1>&2 ; return 1 ; }
+    declare -p "$1" > /dev/null 2>&1
+    [[ $? -eq 1 ]] && { echo "Bash variable [${1}] doesn't exist" 1>&2 ; return 1 ; }
+    [[ ! "$2" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid index variable aarr_at()" 1>&2 ; return 1 ; }
+    declare -n r=$1 
+        echo ${r[$2]}
+}
+
+# Get the array index count eg. ${#array[@]}
 function arr_count() {
     [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr_count()" 1>&2 ; return 1 ; }
     declare -p "$1" > /dev/null 2>&1
@@ -242,17 +252,17 @@ function int_check() {
     if [[ ! -z $3 ]]; then
         if [[ $3 =~ $ren ]]; then
             if [[ $2 == "scope" ]]; then
-                if [[ $3 -lt $5 ]] || [[ $3 -gt $6 ]]; then
+                if [[ $3 -le $5 ]] || [[ $3 -ge $6 ]]; then
                     echo "Butterfinger failsafe: $1 is outside of scope! ($5 - $6)"
                     sint_check_ERROR=true
                 fi
             elif [[ $2 == "max" ]]; then
-                if [[ $3 -gt $5 ]]; then
+                if [[ $3 -ge $5 ]]; then
                     echo "Butterfinger failsafe: $1 can't be higher than $5 !"
                     int_check_ERROR=true
                 fi
             elif [[ $2 == "min" ]]; then
-                if [[ $3 -lt $5 ]]; then
+                if [[ $3 -le $5 ]]; then
                     echo "Butterfinger failsafe: $1 can't be lower than $5 !"
                     int_check_ERROR=true
                 fi
@@ -380,6 +390,14 @@ function arraybuildcurve() {
     $LogFunc && echo "$f Function end."
 }
 # arraybuildsettings "#1 curve id"
+#index cheat sheet
+# 0 - Fan speed paremeter toggle
+# 1 - Modifier parameter toggle
+# 2 - fanspeed offset parameter toggle
+# 3 - governor parameter type
+# 4 - delta parameter value
+# 5 - curve temp offset value
+# 6 - label
 function arraybuildsettings() {
     $LogFunc && echo "$f Function start  > arraybuildsettings(${1})"
     arraybuild_ERROR=false
@@ -419,14 +437,14 @@ function arraybuildsettings() {
             echo "Error with governor"
             arraybuild_ERROR=true
         fi
-        int_check "$delta" scope "${!delta}" false 0 50
+        int_check "$delta" scope "${!delta}" false "0" "50"
         if $bool_check ; then
             arr_set "C${1}_settings" "4" "${!delta}"
         else
             echo "Error with delta"
             arraybuild_ERROR=true
         fi
-        int_check "$offset" scope "${!offset}" false 0 50
+        int_check "$offset" scope "${!offset}" false "-50" "50"
         if $bool_check ; then
             arr_set "C${1}_settings" "5" "${!offset}"
         else
@@ -600,3 +618,6 @@ for ((z=0; z<40 ; z++))
 
 governor "0"
 
+arr "test"
+arr_set "test" "index" "testvariable"
+echo $(aarr_at "test" "index")
