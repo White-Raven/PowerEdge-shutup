@@ -1,4 +1,5 @@
 # PowerEdge-shutup
+- 2022 05 13 | >minor update: Adding custom failsafe value. Work In Progress branch for upcoming R5. 
 - 2022 03 04 | >R4 patch1 : Adding new CPU Data source option, minor log corrections.
 - 2022 03 03 | >R4 Deltacheck CPU mode, DeltaA/E with Ambient check, failsafes, infinite CPU count.
 - 2022 02 27 | >minor update: adding IPMI-fail fail-safe.
