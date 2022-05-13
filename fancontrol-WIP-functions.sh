@@ -22,7 +22,22 @@ EXHAUST_ID=01h
 #In that case, you will have to do with only Ambient temp to define your fan speed, or rely on other sources for CPU temps.
 #-------------------------------------------------
 
-
+#Non-IPMI data source for CPU:
+NICPU_toggle=false
+#Command, or you way to pull data per device (here, using coretemp driver's coretemp-isa-#### )
+NICPUdatadump_command=(sensors -A)
+#Top level Device scan
+NICPUdatadump_device="coretemp-isa-"
+#Top level device count of numbers. For example coretemp-isa-0000 and coretemp-isa-0001 on a R720, coretemp-isa-#### would be 4.
+NICPUdatadump_device_num=4
+#"Core #" label for grep
+NICPUdatadump_core=Core
+#Where to cut in the line
+NICPUdatadump_cut="-c16-18"
+#Temperature offset : Some drivers report higher or lower temps than real world. Your offset must be an integer (ex: 0, -5, 12)
+NICPUdatadump_offset=0
+#IPMI data can be still used for Ambient and Exhaust data, but if you want to ignore pulling IPMI data all together, you can toggle it to false.
+IPMIDATA_toggle=true
 # CPU curve using new array population function
 # DO NOT try to deactivate this curve or replace its ID, it will break the default profiles and failsafes.
 C0_toggle=true
@@ -299,7 +314,7 @@ function int_check() {
     if [[ ! -z $3 ]]; then
         if [[ $3 =~ $ren ]]; then
             if [[ $2 == "scope" ]]; then
-                if [[ $3 -le $5 ]] || [[ $3 -ge $6 ]]; then
+                if [[ $3 -lt $5 ]] || [[ $3 -gt $6 ]]; then
                     echo "Butterfinger failsafe: $1 is outside of scope! ($5 - $6)"
                     sint_check_ERROR=true
                 fi
@@ -357,13 +372,13 @@ function bool_check() {
 function arraybuildcurve() {
     $LogFunc && echo "$f Function start  > §arraybuildcurve(${1})"
     arr "Curve_ts_${1}"
-    if $(arr_at "C${1}_settings" "0") ; then 
+    if $(aarr_at "C${1}_settings" "fs_toggle") ; then 
         arr "Curve_fs_${1}"
     fi
-    if $(arr_at "C${1}_settings" "1") ; then
+    if $(aarr_at "C${1}_settings" "mod_toggle") ; then
         arr "Curve_mod_${1}"
     fi
-    if $(arr_at "C${1}_settings" "2") ; then
+    if $(aarr_at "C${1}_settings" "os_toggle") ; then
         arr "Curve_os_${1}"
     fi
     for ((g=0; g>=0; g++))
@@ -375,24 +390,24 @@ function arraybuildcurve() {
         if [[ ! -z "${!inloopstep}" ]]; then
             int_check "$inloopstep" scope "${!inloopstep}" false 20 105
             arr_insert "Curve_ts_${1}" "${!inloopstep}"
-            if $(arr_at "C${1}_settings" "0"); then
+            if $(aarr_at "C${1}_settings" "fs_toggle"); then
                 int_check "$inloopspeed" scope "${!inloopspeed}" false 0 100 
                 arr_insert "Curve_fs_${1}" "${!inloopspeed}"
             fi
-            if $(arr_at "C${1}_settings" "1"); then
+            if $(aarr_at "C${1}_settings" "mod_toggle"); then
                 int_check "$inloopmodifier" scope "${!inloopmodifier}" false 0 100 
                 arr_insert "Curve_mod_${1}" "${!inloopmodifier}"
             fi
-            if $(arr_at "C${1}_settings" "2"); then
+            if $(aarr_at "C${1}_settings" "os_toggle"); then
                 int_check scope "$inloopspoffset" scope "${!inloopspoffset}" false 0 100 
                 arr_insert "Curve_os_${1}" "${!inloopspoffset}"
             fi
             if $LogFunc || $Logloop ; then
                     echo "$f$l Step n°$((g+1))"
                     echo "$f$l $inloopstep = ${!inloopstep}°C"
-                    $(arr_at "C${1}_settings" "0") && echo "$f$l $inloopspeed   = ${!inloopspeed}%"
-                    $(arr_at "C${1}_settings" "1") && echo "$f$l $inloopmodifier  = ${!inloopmodifier}°C"
-                    $(arr_at "C${1}_settings" "2") && echo "$f$l $inloopspoffset   = ${!inloopspoffset}°C"  
+                    $(aarr_at "C${1}_settings" "fs_toggle") && echo "$f$l $inloopspeed   = ${!inloopspeed}%"
+                    $(aarr_at "C${1}_settings" "mod_toggle") && echo "$f$l $inloopmodifier  = ${!inloopmodifier}°C"
+                    $(aarr_at "C${1}_settings" "os_toggle") && echo "$f$l $inloopspoffset   = ${!inloopspoffset}°C"  
             fi
         else
             if [ $g -le 0 ]; then
@@ -403,33 +418,33 @@ function arraybuildcurve() {
             echo "Butterfinger failsafe: Curve_ts_${1} array count isn't equal to loop count!!"
             setfanspeed XX XX "$E_value" 1
             fi
-            if $(arr_at "C${1}_settings" "0"); then
+            if $(aarr_at "C${1}_settings" "fs_toggle"); then
                 if [[ $(arr_count "Curve_ts_${1}") != $(arr_count "Curve_fs_${1}") ]]; then
                 echo "Butterfinger failsafe: Curve_fs_${1} array count isn't equal to Curve_ts_${1} array count!!"
                 setfanspeed XX XX "$E_value" 1
                 fi
             fi
-            if $(arr_at "C${1}_settings" "1"); then
+            if $(aarr_at "C${1}_settings" "mod_toggle"); then
                 if [[ $(arr_count "Curve_ts_${1}") != $(arr_count "Curve_mod_${1}") ]]; then
                 echo "Butterfinger failsafe: Curve_mod_${1} array count isn't equal to Curve_ts_${1} array count!!"
                 setfanspeed XX XX "$E_value" 1
                 fi
             fi
-            if $(arr_at "C${1}_settings" "2"); then
+            if $(aarr_at "C${1}_settings" "os_toggle"); then
                 if [[ $(arr_count "Curve_ts_${1}") != $(arr_count "Curve_os_${1}") ]]; then
                 echo "Butterfinger failsafe: Curve_os_${1} array count isn't equal to Curve_ts_${1} array count!!"
                 setfanspeed XX XX "$E_value" 1
                 fi
             fi
-            arr_set "C${1}_settings" "7" "$(arr_at "Curve_ts_${1}" "$((g-1))")"
+            aarr_set "C${1}_settings" "max_temp" "$(arr_at "Curve_ts_${1}" "$((g-1))")"
             if $LogFunc ; then
-                    echo "$f Loop count $(printf "%-7s" $(arr_at "C${1}_settings" "6"))  = $g"
-                    echo "$f Max step            = $(arr_at "C${1}_settings" "7")°C"
+                    echo "$f Loop count $(printf "%-7s" $(aarr_at "C${1}_settings" "label"))  = $g"
+                    echo "$f Max step            = $(aarr_at "C${1}_settings" "max_temp")°C"
                     echo "$f Array building      = stop"
                     echo "$f Curve $1 Steps       = $(arr_get "Curve_ts_${1}")°C"
-                    $(arr_at "C${1}_settings" "0") && echo "$f Curve $1 Fan Speeds  = $(arr_get "Curve_fs_${1}")%"
-                    $(arr_at "C${1}_settings" "1") && echo "$f Curve $1 Modifiers   = $(arr_get "Curve_mod_${1}")°C"
-                    $(arr_at "C${1}_settings" "2") && echo "$f Curve $1 Offsets     = $(arr_get "Curve_os_${1}")°C"
+                    $(aarr_at "C${1}_settings" "fs_toggle") && echo "$f Curve $1 Fan Speeds  = $(arr_get "Curve_fs_${1}")%"
+                    $(aarr_at "C${1}_settings" "mod_toggle") && echo "$f Curve $1 Modifiers   = $(arr_get "Curve_mod_${1}")°C"
+                    $(aarr_at "C${1}_settings" "os_toggle") && echo "$f Curve $1 Offsets     = $(arr_get "Curve_os_${1}")°C"
             fi
             break
         fi
@@ -437,14 +452,6 @@ function arraybuildcurve() {
     $LogFunc && echo "$f Function end."
 }
 # arraybuildsettings "#1 curve id"
-#index cheat sheet
-# 0 - Fan speed paremeter toggle
-# 1 - Modifier parameter toggle
-# 2 - fanspeed offset parameter toggle
-# 3 - governor parameter type
-# 4 - delta parameter value
-# 5 - curve temp offset value
-# 6 - label
 function arraybuildsettings() {
     $LogFunc && echo "$f Function start  > arraybuildsettings(${1})"
     arraybuild_ERROR=false
@@ -456,50 +463,50 @@ function arraybuildsettings() {
     offset="C${1}_offset"
     label="C${1}_label"
     if [[ ! -z "${!fs_toggle}" ]] && [[ ! -z "${!mod_toggle}" ]] && [[ ! -z "${!os_toggle}" ]] && [[ ! -z "${!governor}" ]] && [[ ! -z "${!delta}" ]] && [[ ! -z "${!offset}" ]] && [[ ! -z "${!label}" ]]; then
-        arr "C${1}_settings"
+        aarr "C${1}_settings"
         bool_check "$fs_toggle" "${!fs_toggle}" true
         if $bool_check ; then
-            arr_set "C${1}_settings" "0" "${!fs_toggle}"
+            aarr_set "C${1}_settings" "fs_toggle" "${!fs_toggle}"
         else
             echo "Error with fs"
             arraybuild_ERROR=true
         fi
         bool_check "$mod_toggle" "${!mod_toggle}" true
         if $bool_check ; then
-            arr_set "C${1}_settings" "1" "${!mod_toggle}"
+            aarr_set "C${1}_settings" "mod_toggle" "${!mod_toggle}"
         else
             echo "Error with mod"
             arraybuild_ERROR=true
         fi
         bool_check "$os_toggle" "${!os_toggle}" true
         if $bool_check ; then
-            arr_set "C${1}_settings" "2" "${!os_toggle}"
+            aarr_set "C${1}_settings" "os_toggle" "${!os_toggle}"
         else
             echo "Error with os"
             arraybuild_ERROR=true
         fi
         if [[ "${!governor}" == 0 ]] || [[ "${!governor}" == 1 ]] || [[ "${!governor}" == "ae" ]]  ; then
-            arr_set "C${1}_settings" "3" "${!governor}"
+            aarr_set "C${1}_settings" "governor" "${!governor}"
         else
             echo "Error with governor"
             arraybuild_ERROR=true
         fi
         int_check "$delta" scope "${!delta}" false "0" "50"
         if $bool_check ; then
-            arr_set "C${1}_settings" "4" "${!delta}"
+            aarr_set "C${1}_settings" "delta" "${!delta}"
         else
             echo "Error with delta"
             arraybuild_ERROR=true
         fi
         int_check "$offset" scope "${!offset}" false "-50" "50"
         if $bool_check ; then
-            arr_set "C${1}_settings" "5" "${!offset}"
+            aarr_set "C${1}_settings" "offset" "${!offset}"
         else
             echo "Error with offset"
             arraybuild_ERROR=true
         fi
         if [[ ! "${!label}" =~ [^A-Za-z0-9\&_-] ]] ; then
-            arr_set "C${1}_settings" "6" "${!label}"
+            aarr_set "C${1}_settings" "label" "${!label}"
         else
             echo "${!label}"
             echo "Error with label"
@@ -512,7 +519,7 @@ function arraybuildsettings() {
         echo "/!\ Error while building Curve$1 's settings /!\ "
         setfanspeed XX XX "$E_value" 1
     fi
-    echo "$(arr_get "C${1}_settings")"
+    echo "$(aarr_get "C${1}_settings")"
     $LogFunc && echo "$f Function end."
 }
 
@@ -521,15 +528,14 @@ function arraybuilddata() {
 echo "nothing yet"
 }
 
-#///governor "#1 Origin label" "#2 temp array id" "#4 mode (average(0)/highest(1)/1v2(ae))" "#4 Delta y/n" "#5 Delta value" 
 #governor "#1 Curve id"
 function governor() {
     unset $templow
     unset $temphigh
     $LogFunc && echo "$f Function start  > governor(${1})"
-    if [[ "$(arr_at "C${1}_settings" "3")" == "ae" ]]; then
+    if [[ "$(aarr_at "C${1}_settings" "governor")" == "ae" ]]; then
         echo "todo"
-    elif [[ "$(arr_at "C${1}_settings" "3")" == "1" ]] || [[ "$(arr_at "C${1}_settings" "3")" == "0" ]] ; then
+    elif [[ "$(aarr_at "C${1}_settings" "governor")" == "1" ]] || [[ "$(aarr_at "C${1}_settings" "governor")" == "0" ]] ; then
         if $Logloop ; then
                 echo "$l New loop => Finding highest and lowest $1"
         fi
@@ -537,7 +543,7 @@ function governor() {
             do
                 inlooptemp=$(arr_at "C${1}_readings" "$h")
                 if $Logloop ; then
-                        echo "$l Checking for $(printf "%-7s" "$(arr_at "C${1}_settings" "6")$h")= $inlooptemp°C"
+                        echo "$l Checking for $(printf "%-7s" "$(aarr_at "C${1}_settings" "label")$h")= $inlooptemp°C"
                 fi
                 if [ "$h" -eq 0 ]; then
                       temphigh=$inlooptemp
@@ -545,13 +551,13 @@ function governor() {
                 else
                     if [ $inlooptemp -gt $temphigh ]; then
                         if $Logloop ; then
-                                echo "$l Checking for $(printf "%-7s" "$(arr_at "C${1}_settings" "6")$h")= $inlooptemp°C"
+                                echo "$l Checking for $(printf "%-7s" "$(aarr_at "C${1}_settings" "label")$h")= $inlooptemp°C"
                         fi
                         temphigh=$inlooptemp
                     fi
                     if [ $inlooptemp -lt $templow ]; then
                         if $Logloop ; then
-                                echo "$l Checking for $(printf "%-7s" "$(arr_at "C${1}_settings" "6")$h")= $inlooptemp°C"
+                                echo "$l Checking for $(printf "%-7s" "$(aarr_at "C${1}_settings" "label")$h")= $inlooptemp°C"
                         fi
                         templow=$inlooptemp
                     fi
@@ -560,17 +566,18 @@ function governor() {
         if $Logloop ; then
             echo "$l Lowest = $templow°C"
             echo "$l Highest = $temphigh°C"
-            echo "$l "$(arr_at "C${1}_settings" "6")" Find highest = stop"
+            echo "$l "$(aarr_at "C${1}_settings" "label")" Find highest = stop"
         fi
 
-        if [ "$(arr_at "C${1}_settings" "3")" -eq 1 ] || [ $((temphigh-templow)) -gt "$(arr_at "C${1}_settings" "4")" ]; then
-            echo "!! $(arr_at "C${1}_settings" "6") DELTA Exceeded !!"
+        if [ "$(aarr_at "C${1}_settings" "governor")" -eq 1 ] || [ $((temphigh-templow)) -gt "$(aarr_at "C${1}_settings" "delta")" ]; then
+            echo "!! $(aarr_at "C${1}_settings" "label") DELTA Exceeded !!"
             echo "Lowest : $templow°C"
             echo "Highest: $temphigh°C"
-            echo "Delta Max: "$(arr_at "C${1}_settings" "4")" °C"
-            echo "Switching $(arr_at "C${1}_settings" "6") profile..."
+            echo "Delta Max: "$(aarr_at "C${1}_settings" "delta")" °C"
+            echo "Switching $(aarr_at "C${1}_settings" "label") profile..."
             declare C${1}_delta_E=1
             declare C${1}_ER=$temphigh
+            aarr_set "C${1}_settings" "vTemp" "$temphigh"
         fi
     else
         echo "!! $1 : Missing or invalid governor parameter!!"
@@ -580,47 +587,37 @@ function governor() {
 }
 
 
-#>tempcomp "#1 origin "CPU MOD"" "#2 value $vTEMP" "#3 operator ge/gt" "#4 valuemax $MAXTEMP" "#5 originlabel" "#6 curve id" "#7 tempcurvelabel "CPU temp steps""
+#>tempcomp "#1 curve id"
 function tempcomp() {
-    $LogFunc && echo "$f Function start  > tempcomp(${1})"
-    if [[ "$3" == "gt" ]] ; then
-        [[ "${2}" -gt "$(arr_at "C${6}_settings" "7")" ]] && crittemp=true || crittemp=false
-    elif [[ "$3" == "ge" ]]; then
-        [[ "${2}" -ge "$(arr_at "C${6}_settings" "7")" ]] && crittemp=true || crittemp=false
-    elif [[ "$3" != "ge" ]] && [[ "$3" != "gt" ]] ; then
-        echo "!! $1 : Invalid critical parameter!!"
-        setfanspeed XX XX "$E_value" 1
-    fi
-    if $crittemp; then
-        echo "!! $1 : Temperature Critical trigger!!"
-        setfanspeed "${2}" "$(arr_at "C${1}_settings" "7")" "$E_value" 0
+    $LogFunc && echo "$f Function start  > tempcomp($(aarr_at "C${1}_settings" "label"))"
+    looptemp="$(aarr_at "C${1}_settings" "vTemp")"
+    if [[ "$looptemp" -gt "$(aarr_at "C${1}_settings" "max_temp")" ]] ; then
+        echo "!! $(aarr_at "C${1}_settings" "label") : Temperature Critical trigger!!"
+        setfanspeed "$looptemp" "$(aarr_at "C${1}_settings" "max_temp")" "$E_value" 0
     else
         if $Logloop ; then
-            echo "$l New loop => From $1 using $7"
+            echo "$l New loop => From $(aarr_at "C${1}_settings" "label") using $(printf "%-18s" "$(aarr_at "C${1}_settings" "label") temp steps")"
         fi
-        for ((t=0; t<$(arr_count "Curve_ts_$6"); t++))
+        for ((t=0; t<$(arr_count "Curve_ts_$1"); t++))
         do
             if $Logloop ; then
-                echo "$l Test $2 =< Curve_ts_$6[$t]($(arr_at "Curve_ts_$6" "$t"))"
+                echo "$l Test $looptemp =< Curve_ts_$1[$t]($(arr_at "Curve_ts_$1" "$t"))"
             fi
-            if [ $2 -le "$(arr_at "Curve_ts_$6" "$t")" ]; then
-                [[ $Logloop ]] && echo "$l Result $2 is =< Curve_ts_$6[$t]($(arr_at "Curve_ts_$6" "$t"))"
-                curve_fs_toggle="C${6}_fs_toggle"
-                curve_mod_toggle="C${6}_mod_toggle"
-                curve_os_toggle="C${6}_os_toggle"
-                if "$(arr_at "C${6}_settings" "0")"; then
-                    declare "C${6}_fs_op"=$(arr_at "Curve_fs_$6" "$t")
-                    [[ $Logloop ]] && echo "$l Defining variable C${6}_fs_op with fanspeed $(arr_at "Curve_fs_$6" "$t") %"
+            if [ $looptemp -le "$(arr_at "Curve_ts_$1" "$t")" ]; then
+                [[ $Logloop ]] && echo "$l Result $looptemp is =< Curve_ts_$1[$t]($(arr_at "Curve_ts_$1" "$t"))"
+                if "$(aarr_at "C${1}_settings" "fs_toggle")"; then
+                    declare "C${1}_fs_op"=$(arr_at "Curve_fs_$1" "$t")
+                    [[ $Logloop ]] && echo "$l Defining variable C${1}_fs_op with fanspeed $(arr_at "Curve_fs_$1" "$t") %"
                 fi
-                if "$(arr_at "C${6}_settings" "1")"; then
-                    declare "C${6}_mod_op"=$(arr_at "Curve_mod_$6" "$t")
-                    [[ $Logloop ]] && echo "$l Defining variable C${6}_mod_op with temp modifier $(arr_at "Curve_mod_$6" "$t")" 
+                if "$(aarr_at "C${1}_settings" "mod_toggle")"; then
+                    declare "C${1}_mod_op"=$(arr_at "Curve_mod_$1" "$t")
+                    [[ $Logloop ]] && echo "$l Defining variable C${1}_mod_op with temp modifier $(arr_at "Curve_mod_$1" "$t")" 
                 fi
-                if "$(arr_at "C${6}_settings" "2")"; then
-                    declare "C${6}_os_op"=$(arr_at "Curve_os_$6" "$t")
-                    [[ $Logloop ]] && echo "$l Defining variable C${6}_os_op with speed offset $(arr_at "Curve_os_$6" "$t") %"
+                if "$(aarr_at "C${1}_settings" "os_toggle")"; then
+                    declare "C${1}_os_op"=$(arr_at "Curve_os_$1" "$t")
+                    [[ $Logloop ]] && echo "$l Defining variable C${1}_os_op with speed offset $(arr_at "Curve_os_$1" "$t") %"
                 fi
-                [[ $Logloop ]] && echo "$l Origin $1 using $(arr_at "C${6}_settings" "6") Temp Steps - Stop Loop." 
+                [[ $Logloop ]] && echo "$l Loop using $(aarr_at "C${1}_settings" "label") Temp Steps - Stop Loop." 
                 break
             else
                 if $Logloop ; then
@@ -654,8 +651,10 @@ for ((k=0; k>=0 ; k++))
     done
 
 #commands to test stuff
-tempcomp "CPU MOD" 49 gt "C${id}_MAX" "" "0" "CPU temp steps"
-tempcomp "AMB check" 22 gt "C${id}_MAX" "" "1" "CPU temp steps"
+aarr_set "C0_settings" "vTemp" "49"
+aarr_set "C1_settings" "vTemp" "22"
+tempcomp "0"
+tempcomp "1"
 arr "C0_readings"
 for ((z=0; z<40 ; z++))
     do
