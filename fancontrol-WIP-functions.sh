@@ -1,5 +1,4 @@
 #!/bin/bash
-
 #---------------------------Configuration IDRAC & base settings of the script.
 # Curves' configurations and profiles are towards the end.
 
@@ -24,6 +23,11 @@ IPMIEK=0000000000000000000000000000000000000000
 E_value="auto"
 
 #IPMI IDs
+#You can disable IPMI as a source of temperature readings IF you use a different source for the CPU, AND don't want to use inlet/exhaust temps.
+IPMIDATA_toggle=true
+#If you want to use a different sensor source for ambient temperature, use an extra curve.
+#/!\The script won't work properly if both CPU and AMBient sources are disabled or invalid, and will default back to auto fan speed. 
+
 #/!\ IMPORTANT - the "0Fh"(CPU0),"0Eh"(CPU1), "04h"(inlet) and "01h"(exhaust) values are the proper ones for MY R720, maybe not for your server. 
 #To check your values, use the "temppull.sh" script.
 CPUID0=0Fh
@@ -59,6 +63,7 @@ f="Func -"
 #----------------------------------------------</!\ vvv DO NOT MODIFY vvv /!\
 re='^[0-9]+$'
 ren='^[+-]?[0-9]+?$'
+#temporary dummy setfanspeed function while testing
 function setfanspeed() {
     exit 0
 }
@@ -620,7 +625,24 @@ function curvebuildtrigger() {
                 echo "End"
                 break
             fi
-        done  
+        done
+    if $IPMIDATA_toggle ; then
+        IPMIPULLDATA=$(ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK sdr type temperature)
+        DATADUMP=$(echo "$IPMIPULLDATA")
+        if [ -z "$DATADUMP" ]; then
+            echo "No data was pulled from IPMI"
+            setfanspeed XX XX "$E_value" 1
+        else
+            AUTOEM=false
+        fi
+    else
+        if $NICPU_toggle ; then
+            AUTOEM=false
+        else
+            echo "Both IPMI data and Non-IPMI-CPU data are toggled off"
+            setfanspeed XX XX "$E_value" 1
+        fi
+    fi
 }
 
 #----------------------------------------------</!\ ^^^ DO NOT MODIFY ^^^ /!\
