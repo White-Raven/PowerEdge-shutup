@@ -1,5 +1,24 @@
 #!/bin/bash
 
+#---------------------------Configuration IDRAC & base settings of the script.
+# Curves' configurations and profiles are towards the end.
+
+#the IP address of iDrac
+IPMIHOST=192.168.0.42
+
+#iDrac user
+IPMIUSER=root
+
+#iDrac password (calvin is the default password)
+IPMIPW=calvin
+
+#YOUR IPMI ENCRYPTION KEY - a big string of zeros is the default, and by default isn't mandatory to be specified.
+#You can modify it, for example in idrac7's webinterface under iDRAC Settings>Network , in the IPMI Settings section.
+IPMIEK=0000000000000000000000000000000000000000
+
+#Side note: you shouldn't ever store credentials in a script. Period. Here it's an example. 
+#I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
+
 #Failsafe mode
 #(Possible values being a number between 80 and 100, or "auto")
 E_value="auto"
@@ -22,155 +41,6 @@ EXHAUST_ID=01h
 #In that case, you will have to do with only Ambient temp to define your fan speed, or rely on other sources for CPU temps.
 #-------------------------------------------------
 
-#Non-IPMI data source for CPU:
-NICPU_toggle=false
-#Command, or you way to pull data per device (here, using coretemp driver's coretemp-isa-#### )
-NICPUdatadump_command=(sensors -A)
-#Top level Device scan
-NICPUdatadump_device="coretemp-isa-"
-#Top level device count of numbers. For example coretemp-isa-0000 and coretemp-isa-0001 on a R720, coretemp-isa-#### would be 4.
-NICPUdatadump_device_num=4
-#"Core #" label for grep
-NICPUdatadump_core=Core
-#Where to cut in the line
-NICPUdatadump_cut="-c16-18"
-#Temperature offset : Some drivers report higher or lower temps than real world. Your offset must be an integer (ex: 0, -5, 12)
-NICPUdatadump_offset=0
-#IPMI data can be still used for Ambient and Exhaust data, but if you want to ignore pulling IPMI data all together, you can toggle it to false.
-IPMIDATA_toggle=true
-# CPU curve using new array population function
-# DO NOT try to deactivate this curve or replace its ID, it will break the default profiles and failsafes.
-C0_toggle=true
-C0_fs_toggle=true
-C0_mod_toggle=false
-C0_os_toggle=false
-C0_governor=0
-C0_delta=15
-C0_offset=0
-C0_label="CPU"
-#step 0
-C0_TEMP0=30
-C0_FS0=2
-C0_MOD0=
-C0_OS0=
-#step 1
-C0_TEMP1=35
-C0_FS1=6
-C0_MOD1=
-C0_OS1=
-#step 2
-C0_TEMP2=40
-C0_FS2=8
-C0_MOD2=
-C0_OS2=
-#step 3
-C0_TEMP3=50
-C0_FS3=10
-C0_MOD3=
-C0_OS3=
-#step 4
-C0_TEMP4=60
-C0_FS4=12
-C0_MOD4=
-C0_OS4=
-#step 5
-C0_TEMP5=75
-C0_FS5=20
-C0_MOD5=
-C0_OS5=
-
-# Ambient curve using new array population function
-# DO NOT try to deactivate this curve or replace its ID, it will break the default profiles and failsafes.
-C1_toggle=true
-C1_fs_toggle=true
-C1_mod_toggle=true
-C1_os_toggle=false
-C1_governor="ae"
-C1_delta=15
-C1_offset=0
-C1_label="AMB"
-#step 0
-C1_TEMP0=20
-C1_FS0=6
-C1_MOD0=0
-C1_OS0=0
-#step 1
-C1_TEMP1=22
-C1_FS1=12
-C1_MOD1=10
-C1_OS1=0
-#step 2
-C1_TEMP2=24
-C1_FS2=20
-C1_MOD2=15
-C1_OS2=5
-#step 3
-C1_TEMP3=26
-C1_FS3=30
-C1_MOD3=20
-C1_OS3=10
-
-#EXTRA CURVE Preparation routines
-function curve_pre() {
-    for ((k=0; k>=0 ; k++))
-        do
-            curve_toggle="C${k}_toggle"
-            if [[ -z "${!curve_toggle}" ]] ; then
-                Curve_ID=${k}
-            fi
-        done
-}
-function curve_post() {
-    declare C${1}_delta=$Curve_Delta
-    declare C${1}_toggle=$Curve_Toggle
-    declare C${1}_offset=$Temperature_Offset
-    declare C${1}_fs_toggle=$Curve_FanSpeed_Toggle
-    declare C${1}_mod_toggle=$Curve_Modifier_Toggle
-    declare C${1}_os_toggle=$Curve_Offset_Toggle
-    Curve_Toggle=false
-    unset Curve_FanSpeed_Toggle
-    unset Curve_Modifier_Toggle
-    unset Curve_Offset_Toggle
-    unset Temperature_Offset
-}
-
-
-#EXTRA CURVE CONFIG -- For each new curve, copy the entire block    v   v   v   v   v   v   v   v   v   v
-Curve_Toggle=false
-
-Curve_Delta=15
-Temperature_Offset=0
-#>Curve effects
-#The curve contains stepping to set fan speed
-Curve_FanSpeed_Toggle=false
-#The curve contains stepping to apply a modifier to an other curve's readings
-Curve_Modifier_Toggle=false
-#The curve contains stepping to apply a fan speed offset to an other curve's result
-Curve_Offset_Toggle=false
-
-
-
-#--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
-if [[ $Curve_Toggle == "true" ]]; then                     #
-    curve_pre
-#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0 
-    #step 0   
-    declare C${Curve_ID}_TEMP0=40
-    declare C${Curve_ID}_FS0=4
-    declare C${Curve_ID}_MOD0=0
-    declare C${Curve_ID}_OS0=0
-    #step 1
-    declare C${Curve_ID}_TEMP1=60
-    declare C${Curve_ID}_FS1=15
-    declare C${Curve_ID}_MOD1=10
-    declare C${Curve_ID}_OS1=5
-
-#--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
-    curve_post $Curve_ID
-fi
-#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0
-#EXTRA CURVE CONFIG -- For each new curve, copy the entire block    ^   ^   ^   ^   ^   ^   ^   ^   ^   ^
-
 
 #Log loop debug - true or false, logging of loops for debugging script
 Logloop=true
@@ -185,12 +55,48 @@ BoolInt=false
 #Looplog prefix
 f="Func -"
 
+# Curves' configurations and profiles are towards the end.
+#----------------------------------------------</!\ vvv DO NOT MODIFY vvv /!\
+re='^[0-9]+$'
+ren='^[+-]?[0-9]+?$'
 function setfanspeed() {
     exit 0
 }
-
-
-
+#Hexadecimal conversion and IPMI command into a function 
+# ipmifanctl=(ipmitool -I lanplus -H "$IPMIHOST" -U "$IPMIUSER" -P "$IPMIPW" -y "$IPMIEK" raw 0x30 0x30)
+# function setfanspeed () { 
+#     TEMP_Check=$1
+#     TEMP_STEP=$2
+#     FS=$3
+#     if [[ $FS == "auto" ]]; then
+#         if [ "$Logtype" != 0 ] && [ "$4" -eq 0 ]; then
+#                 echo "> $TEMP_Check °C is higher or equal to $TEMP_STEP °C. Switching to automatic fan control"
+#         fi
+#         [ "$4" -eq 1 ] && echo "> ERROR : Keeping fans on auto as safety measure"
+#         "${ipmifanctl[@]}" 0x01 0x01
+#         exit $4
+#     else
+#         if [[ $FS -gt "100" ]]; then
+#             FS=100
+#         fi
+#         HEX_value=$(printf '%#04x' "$FS")
+#         if [ "$4" -eq 1 ]; then
+#             echo "> ERROR : Keeping fans on high profile ($3 %) as safety measure"
+#         elif [ "$Logtype" != 0 ]; then
+#             echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+#         fi
+#         "${ipmifanctl[@]}" 0x01 0x00
+#         "${ipmifanctl[@]}" 0x02 0xff "$HEX_value"
+#         exit $4
+#      fi
+# }
+if ! command -v sed &> /dev/null
+then
+    echo "[WARN] '>sed' (stream editor) package unavailable. Falling back to 'cut' method"
+    sed_allow=false
+else
+    sed_allow=true
+fi
 # Dynamically create an array by name
 function arr() {
     [[ ! "$1" =~ ^[a-zA-Z_]+[a-zA-Z0-9_]*$ ]] && { echo "Invalid bash variable arr()" 1>&2 ; return 1 ; }
@@ -629,26 +535,274 @@ function tempcomp() {
     $LogFunc && echo "$f Function end."
 }
 
-for ((k=0; k>=0 ; k++))
-    do
-        curve_toggle="C${k}_toggle"
-        if [[ ! -z "${!curve_toggle}" ]] ; then
-            if [[ "${!curve_toggle}" == "true" ]]; then
-                arraybuildsettings "${k}" 
-                arraybuildcurve "${k}"
-            else
-                echo "Disabled Curve"
-                break
-            fi     
-        else
-            if [[ ${k} == "0" ]]; then
-                echo "/!\ No active curve detected /!\ "
-                setfanspeed XX XX "$E_value" 1
+#Curve Preparation routines
+function curve_pre() {
+    if [[ ! -z $1 ]]; then
+        if [[ $1 =~ $re ]] && [[ $1 -ge 0 ]]; then 
+            Curve_ID=$1
+            if [[ $Curve_label = "CPU "]]; then
+                Curve_FanSpeed_Toggle=true
+            elif [[ $Curve_label = "AMB" ]]; then
+                Curve_FanSpeed_Toggle=true
+                Curve_Modifier_Toggle=true
             fi
-            echo "End"
-            break
+        else
+            echo "/!\  FATAL ERROR IN CURVE CONFIGURATION /!\ "
+            echo "Set curve value entered invalid = &1 "
+            setfanspeed XX XX "$E_value" 1
+
+    else
+        for ((k=0; k>=0 ; k++))
+            do
+                curve_toggle="C${k}_toggle"
+                if [[ -z "${!curve_toggle}" ]] ; then
+                    Curve_ID=${k}
+                fi
+            done
+    fi
+}
+function curve_post() {
+    declare C${1}_toggle=$Curve_Toggle
+    declare C${1}_fs_toggle=$Curve_FanSpeed_Toggle
+    declare C${1}_mod_toggle=$Curve_Modifier_Toggle
+    declare C${1}_os_toggle=$Curve_Offset_Toggle
+    declare C${1}_governor=$Curve_governor
+    declare C${1}_delta=$Curve_Delta
+    declare C${1}_offset=$Curve_Temperature_Offset
+    declare C${1}_label=$Curve_label
+    if [[ $Curve_label = "CPU"]]; then
+        if $CPU_NIsource_toggle ; then
+            declare C${1}_NIS_toggle=$Curve_NIsource_toggle
+            declare C${1}_NIS_command=$Curve_NIsource_command
+            declare C${1}_NIS_toggle=$Curve_NIsource_device
+            declare C${1}_NIS_toggle=$Curve_NIsource_device_num
+            declare C${1}_NIS_toggle=$Curve_NIsource_key
+            declare C${1}_NIS_toggle=$Curve_NIsource_cut
+            declare C${1}_NIS_toggle=$Curve_NIsource_sed
+            declare C${1}_NIS_toggle=$Curve_NIsource_offset
         fi
-    done
+    elif [[ $Curve_label != "CPU" ]] && [[ $Curve_label != "AMB" ]]; then
+        declare C${1}_NIS_toggle=$Curve_NIsource_toggle
+        declare C${1}_NIS_command=$Curve_NIsource_command
+        declare C${1}_NIS_toggle=$Curve_NIsource_device
+        declare C${1}_NIS_toggle=$Curve_NIsource_device_num
+        declare C${1}_NIS_toggle=$Curve_NIsource_key
+        declare C${1}_NIS_toggle=$Curve_NIsource_cut
+        declare C${1}_NIS_toggle=$Curve_NIsource_sed
+        declare C${1}_NIS_toggle=$Curve_NIsource_offset
+    fi
+    unset Curve_Toggle
+    unset Curve_FanSpeed_Toggle
+    unset Curve_Modifier_Toggle
+    unset Curve_Offset_Toggle
+    unset Curve_governor
+    unset Curve_Delta
+    unset Curve_Temperature_Offset
+    unset Curve_label
+}
+function curvebuildtrigger() {
+    for ((k=0; k>=0 ; k++))
+        do
+            curve_toggle="C${k}_toggle"
+            if [[ ! -z "${!curve_toggle}" ]] ; then
+                if [[ "${!curve_toggle}" == "true" ]]; then
+                    arraybuildsettings "${k}" 
+                    arraybuildcurve "${k}"
+                else
+                    echo "Disabled Curve"
+                    break
+                fi     
+            else
+                if [[ ${k} == "0" ]]; then
+                    echo "/!\ No active curve detected /!\ "
+                    setfanspeed XX XX "$E_value" 1
+                fi
+                echo "End"
+                break
+            fi
+        done  
+}
+
+#----------------------------------------------</!\ ^^^ DO NOT MODIFY ^^^ /!\
+
+
+
+#---------------vvv CPU CURVE <<
+# CPU curve using new array population functions
+#The curve contains stepping to apply a modifier to an other curve's readings
+Curve_Modifier_Toggle=false
+#The curve contains stepping to apply a fan speed offset to an other curve's result
+Curve_Offset_Toggle=false
+Curve_governor=0
+Curve_Delta=15
+#Temperature Positive Offset applied to the raw readings
+Curve_Temperature_Offset=0
+Curve_label="CPU"  # Do not modify the label of the curve if you're using IPMI data as source.
+
+#Non-IPMI data source for CPU:
+CPU_NIsource_toggle=false
+#Command, or you way to pull data per device (here, using coretemp driver's coretemp-isa-#### )
+Curve_NIsource_command=(sensors -A)
+#Top level Device scan
+Curve_NIsource_device="coretemp-isa-"
+#Top level device count of numbers. For example coretemp-isa-0000 and coretemp-isa-0001 on a R720, coretemp-isa-#### would be 4.
+Curve_NIsource_device_num=4
+#The keyword sesame for grep to know where to grab stuff. In that case "Core #"
+Curve_NIsource_key=Core
+#Where to cut in the line. Fall back method.
+Curve_NIsource_cut="-c16-18"
+#Stream editor to extract value when >sed package is available.
+Curve_NIsource_sed="-e 's/.*: \+\([+-][0-9.]\+\)°C.*$/0\1/'"
+#Temperature offset : Some drivers report higher or lower temps than real world. Your offset must be an integer (ex: 0, -5, 12)
+Curve_NIsource_offset=0
+#sensors | grep '^Core 1' | sed -e 's/.*: \+\([+-][0-9.]\+\)°C.*$/0\1/'
+
+#---</!\ vvv DO NOT MODIFY vvv /!\
+    curve_pre 0
+#---</!\ ^^^ DO NOT MODIFY ^^^ /!\
+
+    #You can ajust each steps' values, or add/remove steps
+    #Needs to start at step 0, needs to be continuous.
+    #step 0   
+    declare C${Curve_ID}_TEMP0=30
+    declare C${Curve_ID}_FS0=2
+    declare C${Curve_ID}_MOD0=
+    declare C${Curve_ID}_OS0=
+    #step 1
+    declare C${Curve_ID}_TEMP1=35
+    declare C${Curve_ID}_FS1=6
+    declare C${Curve_ID}_MOD1=
+    declare C${Curve_ID}_OS1=
+    #step 2
+    declare C${Curve_ID}_TEMP2=40
+    declare C${Curve_ID}_FS2=8
+    declare C${Curve_ID}_MOD2=
+    declare C${Curve_ID}_OS2=
+    #step 3
+    declare C${Curve_ID}_TEMP3=50
+    declare C${Curve_ID}_FS3=10
+    declare C${Curve_ID}_MOD3=
+    declare C${Curve_ID}_OS3=
+    #step 4
+    declare C${Curve_ID}_TEMP4=60
+    declare C${Curve_ID}_FS4=12
+    declare C${Curve_ID}_MOD4=
+    declare C${Curve_ID}_OS4=
+    #step 5
+    declare C${Curve_ID}_TEMP5=75
+    declare C${Curve_ID}_FS5=20
+    declare C${Curve_ID}_MOD5=
+    declare C${Curve_ID}_OS5=
+
+#---</!\ vvv DO NOT MODIFY vvv /!\
+    curve_post $Curve_ID
+#---</!\ ^^^ DO NOT MODIFY ^^^ /!\
+
+#---------------^^^ CPU CURVE <<
+
+
+#---------------vvv AMBIENT CURVE <<
+
+# Ambient curve using new array population function
+#The curve contains stepping to apply a fan speed offset to an other curve's result
+Curve_Offset_Toggle=false
+Curve_governor=ae
+Curve_Delta=15
+#Temperature Positive Offset applied to the raw readings
+Curve_Temperature_Offset=0
+Curve_label="AMB"  # Do not modify the label of the curve if you're using IPMI data as source.
+
+#---</!\ vvv DO NOT MODIFY vvv /!\
+    curve_pre 1
+#---</!\ ^^^ DO NOT MODIFY ^^^ /!\
+
+    #You can ajust each steps' values, or add/remove steps
+    #Needs to start at step 0, needs to be continuous.
+    #step 0   
+    declare C${Curve_ID}_TEMP0=20
+    declare C${Curve_ID}_FS0=6
+    declare C${Curve_ID}_MOD0=0
+    declare C${Curve_ID}_OS0=0
+    #step 1
+    declare C${Curve_ID}_TEMP1=22
+    declare C${Curve_ID}_FS1=12
+    declare C${Curve_ID}_MOD1=10
+    declare C${Curve_ID}_OS1=0
+    #step 2
+    declare C${Curve_ID}_TEMP2=24
+    declare C${Curve_ID}_FS2=20
+    declare C${Curve_ID}_MOD2=15
+    declare C${Curve_ID}_OS2=5
+    #step 3
+    declare C${Curve_ID}_TEMP3=26
+    declare C${Curve_ID}_FS3=30
+    declare C${Curve_ID}_MOD3=20
+    declare C${Curve_ID}_OS3=10
+#---</!\ vvv DO NOT MODIFY vvv /!\
+    curve_post $Curve_ID
+#---</!\ ^^^ DO NOT MODIFY ^^^ /!\
+
+#---------------^^^ AMBIENT CURVE <<
+
+
+
+
+
+#EXTRA CURVE CONFIG -- For each new curve, copy the entire block    v   v   v   v   v   v   v   v   v   v
+Curve_Toggle=false
+#>Curve effects
+#The curve contains stepping to set fan speed
+Curve_FanSpeed_Toggle=false
+#The curve contains stepping to apply a modifier to an other curve's readings
+Curve_Modifier_Toggle=false
+#The curve contains stepping to apply a fan speed offset to an other curve's result
+Curve_Offset_Toggle=true
+Curve_governor=0
+Curve_Delta=15
+#Temperature Positive Offset applied to the raw readings
+Curve_Temperature_Offset=0
+Curve_label="HDD"
+#Command, or you way to pull data per device (here, using coretemp driver's coretemp-isa-#### )
+Curve_NIsource_command=(sensors -A)
+#Top level Device scan
+Curve_NIsource_device="coretemp-isa-"
+#Top level device count of numbers. For example coretemp-isa-0000 and coretemp-isa-0001 on a R720, coretemp-isa-#### would be 4.
+Curve_NIsource_device_num=4
+#The keyword sesame for grep to know where to grab stuff. In that case "Core #"
+Curve_NIsource_key=Core
+#Where to cut in the line. Fall back method.
+Curve_NIsource_cut="-c16-18"
+#Stream editor to extract value when >sed package is available.
+Curve_NIsource_sed="-e 's/.*: \+\([+-][0-9.]\+\)°C.*$/0\1/'"
+#Temperature offset : Some drivers report higher or lower temps than real world. Your offset must be an integer (ex: 0, -5, 12)
+Curve_NIsource_offset=0
+#sensors | grep '^Core 1' | sed -e 's/.*: \+\([+-][0-9.]\+\)°C.*$/0\1/'
+
+#--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
+if [[ $Curve_Toggle == "true" ]]; then                     #
+    curve_pre
+#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0 
+    #step 0   
+    declare C${Curve_ID}_TEMP0=40
+    declare C${Curve_ID}_FS0=4
+    declare C${Curve_ID}_MOD0=0
+    declare C${Curve_ID}_OS0=0
+    #step 1
+    declare C${Curve_ID}_TEMP1=60
+    declare C${Curve_ID}_FS1=15
+    declare C${Curve_ID}_MOD1=10
+    declare C${Curve_ID}_OS1=5
+
+#--------------</!\ vvv DO NOT MODIFY vvv /!\--------------0
+    curve_post $Curve_ID
+fi
+#--------------</!\ ^^^ DO NOT MODIFY ^^^ /!\--------------0
+#EXTRA CURVE CONFIG -- For each new curve, copy the entire block    ^   ^   ^   ^   ^   ^   ^   ^   ^   ^
+
+
+#---</!\ vvv DO NOT MODIFY vvv /!\
+    curvebuildtrigger
+#---</!\ ^^^ DO NOT MODIFY ^^^ /!\
 
 #commands to test stuff
 aarr_set "C0_settings" "vTemp" "49"
