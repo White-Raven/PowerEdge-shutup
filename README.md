@@ -4,6 +4,7 @@
 <b>[ Changelog ] </b>
 </summary>
 <p>
+
 - 2022 07 11 | >minor update: Swapping CPU IDs fixing single CPU detection failure.
 - 2022 05 13 | >minor update: Adding custom failsafe value. Work In Progress branch for upcoming R5. 
 - 2022 03 04 | >R4 patch1 : Adding new CPU Data source option, minor log corrections.
