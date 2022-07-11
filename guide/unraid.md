@@ -66,8 +66,8 @@ IPMIEK=0000000000000000000000000000000000000000
 #I suggest you give a look at tools like https://github.com/plyint/encpass.sh 
 
 #IPMI IDs
-CPUID0=0Fh
-CPUID1=0Eh
+CPUID0=0Eh
+CPUID1=0Fh
 CPUID2="0#h"
 CPUID3="0#h"
 AMBIENT_ID=04h
