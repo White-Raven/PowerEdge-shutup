@@ -43,10 +43,10 @@ IPMIEK=0000000000000000000000000000000000000000
 E_value="auto"
 
 #IPMI IDs
-#/!\ IMPORTANT - the "0Fh"(CPU0),"0Eh"(CPU1), "04h"(inlet) and "01h"(exhaust) values are the proper ones for MY R720, maybe not for your server. 
+#/!\ IMPORTANT - the "0Eh"(CPU0),"0Fh"(CPU1), "04h"(inlet) and "01h"(exhaust) values are the proper ones for MY R720, maybe not for your server. 
 #To check your values, use the "temppull.sh" script.
-CPUID0=0Fh
-CPUID1=0Eh
+CPUID0=0Eh
+CPUID1=0Fh
 CPUID2="0#h"
 CPUID3="0#h"
 #Yes, there are 4 CPU servers in the poweredge line. I don't have one, so I left 0#h values for these. As said above, modify accordingly.
