@@ -67,6 +67,19 @@ re='^[0-9]+$'
 ren='^[+-]?[0-9]+?$'
 #temporary dummy setfanspeed function while testing
 function setfanspeed() {
+    TEMP_Check=$1
+    TEMP_STEP=$2
+    FS=$3
+    echo "TEMP_Check=$TEMP_Check"
+    echo "TEMP_STEP=$TEMP_STEP"
+    echo "FS=$FS"
+    echo "4th is $4"
+    HEX_value=$(printf '%#04x' "$FS")
+         if [ "$4" -eq 1 ]; then
+             echo "> ERROR : Keeping fans on high profile ($3 %) as safety measure"
+         elif [ "$Logtype" != 0 ]; then
+             echo "> $TEMP_Check °C is lower or equal to $TEMP_STEP °C. Switching to manual $FS % control"
+         fi
     exit 0
 }
 #Hexadecimal conversion and IPMI command into a function 
@@ -542,7 +555,7 @@ function curve_pre() {
     if [[ ! -z $1 ]]; then
         if [[ $1 =~ $re ]] && [[ $1 -ge 0 ]]; then 
             Curve_ID=$1
-            if [[ $Curve_label = "CPU "]]; then
+            if [[ $Curve_label = "CPU"]]; then
                 Curve_FanSpeed_Toggle=true
             elif [[ $Curve_label = "AMB" ]]; then
                 Curve_FanSpeed_Toggle=true
